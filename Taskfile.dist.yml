@@ -1,0 +1,8 @@
+version: 3
+
+tasks:
+  build:
+    cmds:
+      - rm -rf ./out
+      - arduino-cli compile --fqbn esp32:esp32:esp32c3
+        --output-dir ./out .

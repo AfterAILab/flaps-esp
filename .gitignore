@@ -1,0 +1,12 @@
+out*
+.vscode
+.env
+*.zip
+.DS_Store
+**/.DS_Store
+**/*.DS_Store
+littlefs
+*.bin
+Taskfile.yml
+partitions-table
+LeaderArtifact
