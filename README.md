@@ -1,4 +1,6 @@
-# AfterAI Flaps Leader
+# AfterAI Flaps ESP Chip
+
+ESP chip is on Leader PCBs. Follower PCBs do not have ESP chips.
 
 We developed this software based on `ESPMaster` directory of [davidkingsman/split-flap](https://github.com/davidkingsman/split-flap). Here are some of the major changes we have made:
 

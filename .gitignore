@@ -9,4 +9,4 @@ littlefs
 *.bin
 Taskfile.yml
 partitions-table
-LeaderArtifact
+ESPArtifact

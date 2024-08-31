@@ -1,0 +1,3 @@
+[submodule "mklittlefs_esp32"]
+	path = mklittlefs_esp32
+	url = git@github.com:Jason2866/mklittlefs_esp32.git
