@@ -200,10 +200,11 @@ bool initWiFiSTA()
   return true;
 }
 
-// Initialize WiFi
-IPAddress initWiFi(int operationMode)
+// Initialize WiFi in AP or STA mode
+int initWiFi(int requestedOperationMode)
 {
   bool success = false;
+  int operationMode = requestedOperationMode;
   switch (operationMode)
   {
   case OPERATION_MODE_AP:
@@ -226,6 +227,7 @@ IPAddress initWiFi(int operationMode)
     else
     {
       Serial.println("Failed to initialize WiFi in STA mode. Switching to AP mode");
+      operationMode = OPERATION_MODE_AP;
       success = initWiFiAP();
       if (success)
       {
@@ -239,5 +241,5 @@ IPAddress initWiFi(int operationMode)
     break;
   }
   Serial.println(WiFi.localIP());
-  return WiFi.localIP();
+  return operationMode;
 }

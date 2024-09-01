@@ -24,7 +24,7 @@ int getOffsetUpdateOffset();
 void setWrittenLast(String message);
 void loadMainValues();
 String getMainValues();
-IPAddress initWiFi(int operationMode);
+int initWiFi(int operationMode);
 void initFS();
 
 #endif // WIFIFUNCTIONS_H
