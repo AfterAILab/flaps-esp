@@ -11,7 +11,7 @@ type MetaValues = {
 
 type MainValues = {
 	alignment: string
-	speed: number
+	rpm: number
 	mode: string
 }
 
@@ -176,9 +176,9 @@ export default function App() {
 										buttonStyle='solid'
 									/>
 								</Form.Item>
-								<Form.Item name="speed" label="Speed">
+								<Form.Item name="rpm" label="RPM">
 									<Radio.Group
-										options={[50, 75, 80, 90, 100]}
+										options={[8, 9, 10, 11, 12]}
 										optionType='button'
 										buttonStyle='solid'
 									/>

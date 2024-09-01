@@ -8,7 +8,7 @@ void showNewData(String message);
 void showDate();
 void showClock();
 void updateTimezone();
-void showMessage(String message, int flapSpeed);
+void showMessage(String message, int flapRpm);
 bool isDisplayMoving();
 int readOffset(int address);
 void readOffsets();

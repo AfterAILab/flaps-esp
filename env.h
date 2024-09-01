@@ -25,14 +25,6 @@
 #define NUM_FLAPS 45
 #endif
 
-#ifndef MIN_SPEED
-#define MIN_SPEED 1
-#endif
-
-#ifndef MAX_SPEED
-#define MAX_SPEED 12
-#endif
-
 #ifndef COMMAND_UPDATE_OFFSET
 #define COMMAND_UPDATE_OFFSET 0
 #endif
@@ -61,8 +53,8 @@
 #define PARAM_ALIGNMENT "alignment"
 #endif
 
-#ifndef PARAM_SPEED
-#define PARAM_SPEED "speed"
+#ifndef PARAM_RPM
+#define PARAM_RPM "rpm"
 #endif
 
 #ifndef PARAM_MODE

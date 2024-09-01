@@ -60,8 +60,3 @@ String leftString(String message) {
 
   return message;
 }
-
-int convertSpeed(int speed) {
-  int normalizedSpeed = map(speed, 1, 100, MIN_SPEED, MAX_SPEED);
-  return normalizedSpeed;
-}

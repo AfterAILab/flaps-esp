@@ -100,16 +100,16 @@ void setup()
             Serial.println(getAlignment());
         }
 
-        if (jsonObj.hasOwnProperty("speed")) {
-            JSONVar speed = jsonObj["speed"];
-            if (JSON.typeof(speed) == "number") {
-                // Process the speed value
-                Serial.print("Speed set to: ");
-                Serial.println(speed);
-                writeThroughSpeed(speed);
+        if (jsonObj.hasOwnProperty("rpm")) {
+            JSONVar rpm = jsonObj["rpm"];
+            if (JSON.typeof(rpm) == "number") {
+                // Process the rpm value
+                Serial.print("rpm set to: ");
+                Serial.println(rpm);
+                writeThroughRpm(rpm);
             } else {
-                Serial.println("SPEED is not a valid number.");
-                request->send(400, "application/json", "{\"error\":\"SPEED must be a number\"}");
+                Serial.println("rpm is not a valid number.");
+                request->send(400, "application/json", "{\"error\":\"rpm must be a number\"}");
                 return;
             }
         }
@@ -346,24 +346,24 @@ void loop()
     // Mode Selection
     String mode = getMode();
     String alignment = getAlignment();
-    int speed = getSpeed();
+    int rpm = getRpm();
     if (operationMode == OPERATION_MODE_AP)
     {
       IPAddress i = WiFi.softAPIP();
-      Serial.printf("Operation mode: AP, IP Address: %s, mode: %s, alignment: %s, speed: %d",
+      Serial.printf("Operation mode: AP, IP Address: %s, mode: %s, alignment: %s, rpm: %d",
                     i.toString().c_str(),
                     mode.c_str(),
                     alignment.c_str(),
-                    speed);
+                    rpm);
     }
     else if (operationMode == OPERATION_MODE_STA)
     {
       IPAddress i = WiFi.localIP();
-      Serial.printf("Operation mode: STA, IP Address: %s, mode: %s, alignment: %s, speed: %d",
+      Serial.printf("Operation mode: STA, IP Address: %s, mode: %s, alignment: %s, rpm: %d",
                     i.toString().c_str(),
                     mode.c_str(),
                     alignment.c_str(),
-                    speed);
+                    rpm);
     }
     if (mode == "text")
     {

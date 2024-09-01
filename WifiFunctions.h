@@ -7,7 +7,7 @@
 #include <WiFi.h>
 
 void writeThroughAlignment(String message);
-void writeThroughSpeed(int message);
+void writeThroughRpm(int message);
 void writeThroughMode(String message);
 void setText(String message);
 void setOffsetUpdateUnitAddr(int unitAddr);
@@ -15,7 +15,7 @@ void setOffsetUpdateOffset(int offset);
 String getAlignment();
 String getMode();
 String getText();
-int getSpeed();
+int getRpm();
 String getWrittenLast();
 int getOffsetUpdateUnitAddr();
 int getOffsetUpdateOffset();

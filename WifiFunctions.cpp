@@ -10,7 +10,7 @@ JSONVar values;
 // Variables to save values from HTML form
 String writtenLast;
 String alignment;
-int speed;
+int rpm;
 String mode;
 String text;
 int offsetUpdateUnitAddr = -1;
@@ -24,11 +24,11 @@ void writeThroughAlignment(String message)
   prefs.end();
 }
 
-void writeThroughSpeed(int message)
+void writeThroughRpm(int message)
 {
-  speed = message;
+  rpm = message;
   prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt(PARAM_SPEED, speed);
+  prefs.putInt(PARAM_RPM, rpm);
   prefs.end();
 }
 
@@ -70,9 +70,9 @@ String getText()
   return text;
 }
 
-int getSpeed()
+int getRpm()
 {
-  return speed;
+  return rpm;
 }
 
 String getWrittenLast()
@@ -100,7 +100,7 @@ void loadMainValues()
   // Load values saved in NVS
   prefs.begin(APP_NAME_SHORT, true);
   alignment = prefs.getString(PARAM_ALIGNMENT, "left");
-  speed = prefs.getInt(PARAM_SPEED, 0);
+  rpm = prefs.getInt(PARAM_RPM, 0);
   mode = prefs.getString(PARAM_MODE, "text");
   prefs.end();
 }
@@ -108,7 +108,7 @@ void loadMainValues()
 String getMainValues()
 {
   values[PARAM_ALIGNMENT] = alignment;
-  values[PARAM_SPEED] = speed;
+  values[PARAM_RPM] = rpm;
   values[PARAM_MODE] = mode;
 
   String jsonString = JSON.stringify(values);

@@ -30,7 +30,7 @@ void showNewData(String message)
   Wire.flush();
   if (getWrittenLast() != message)
   {
-    showMessage(message, convertSpeed(getSpeed()));
+    showMessage(message, getRpm());
   }
   setWrittenLast(message);
 }
@@ -68,10 +68,10 @@ void updateOffset(bool force)
   offsets[address] = offset;
 }
 
-// write letter position and speed in rpm to single unit
-void writeToUnit(int address, int letter, int flapSpeed)
+// write letter position and rpm in rpm to single unit
+void writeToUnit(int address, int letter, int flapRpm)
 {
-  int sendArray[2] = {letter, flapSpeed}; // Array with values to send to unit
+  int sendArray[2] = {letter, flapRpm}; // Array with values to send to unit
 
   Wire.beginTransmission(address);
 
@@ -91,13 +91,13 @@ void writeToUnit(int address, int letter, int flapSpeed)
 }
 
 // pushes message to units
-void showMessage(String message, int flapSpeed)
+void showMessage(String message, int flapRpm)
 {
   Serial.println("Entering showMessage function");
   Serial.print("Message: ");
   Serial.println(message);
-  Serial.print("FlapSpeed: ");
-  Serial.println(flapSpeed);
+  Serial.print("FlapRpm: ");
+  Serial.println(flapRpm);
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -123,10 +123,11 @@ void showMessage(String message, int flapSpeed)
     delay(500);
   }
 
-  Serial.println(message);
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt("numUnits", 0);
   prefs.end();
+  Serial.print("Number of units: ");
+  Serial.println(numUnits);
   for (int i = 0; i < numUnits; i++)
   {
     char currentLetter = message[i];
@@ -142,7 +143,7 @@ void showMessage(String message, int flapSpeed)
     // only write to unit if char exists in letter array
     if (currentLetterPosition != -1)
     {
-      writeToUnit(i, currentLetterPosition, flapSpeed);
+      writeToUnit(i, currentLetterPosition, flapRpm);
     }
   }
 }
