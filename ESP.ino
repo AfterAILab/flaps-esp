@@ -298,6 +298,13 @@ void setup()
         String jsonResponse = getOffsetsInString();
         request->send(200, "application/json", jsonResponse); });
 
+  server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+            {
+      Serial.println("Restarting...");
+      request->send(200);
+      delay(1000);
+      ESP.restart(); });
+
   Serial.println("HTTP server starting");
   server.begin();
   Serial.println("HTTP server started");

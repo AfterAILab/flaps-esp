@@ -145,6 +145,19 @@ export default function App() {
 			messageApi.error('Failed to update the misc values')
 		}
 	}
+	
+	const handleRestart = async () => {
+		const response = await fetch('/restart', {
+			method: 'POST',
+			body: stringify({}) // Gotcha: This empty body is necessary for fetch to send a POST request
+		})
+		if (response.ok) {
+			messageApi.success('Restarting the device')
+		}
+		else {
+			messageApi.error('Failed to restart the device')
+		}
+	}
 
 	const ipAddressRules = [{pattern: ipRegex, message: 'Please enter a valid IP address.'}]
 
@@ -245,6 +258,10 @@ export default function App() {
 							</div>
 						</Card>
 					</Form>
+
+					<Card title="Operations">
+						<Button type="primary" onClick={handleRestart}>Restart</Button>
+					</Card>
 				</div>
 
 				<Card title="Offset Settings">
