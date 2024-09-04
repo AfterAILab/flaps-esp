@@ -29,11 +29,18 @@ type OffsetValues = {
 	offset: number
 }
 
-type UnitState = {
+type AvrState = {
 	unitAddr: number
 	offset: number
 	rotating: boolean
 	lastResponseAtMillis: number
+}
+
+type UnitStates = {
+	avrs: AvrState[]
+	esp: {
+		currentMillis: number
+	}
 }
 
 export default function App() {
@@ -43,7 +50,12 @@ export default function App() {
 	})
 	const [mainForm] = Form.useForm()
 	const [selectedMode, setSelectedMode] = useState<string>("")
-	const [offsets, setOffsets] = useState<number[]>([])
+	const [unitStates, setUnitStates] = useState<UnitStates>({
+		avrs: [],
+		esp: {
+			currentMillis: 0
+		}
+	})
 	const [wifiForm] = Form.useForm()
 	const [selectedIpAssignment, setSelectedIpAssignment] = useState<string>("dynamic")
 	const [miscForm] = Form.useForm()
@@ -64,7 +76,7 @@ export default function App() {
 		const data = await res.json();
 		return data;
 	}
-	async function getUnitStates(): Promise<UnitState[]> {
+	async function getUnitStates(): Promise<UnitStates> {
 		const res = await fetch('/unit');
 		const data = await res.json()
 		return data
@@ -85,12 +97,17 @@ export default function App() {
 		const registeredMiscValues = await getRegisteredMiscValues()
 		miscForm.setFieldsValue(registeredMiscValues)
 		const unitStates = await getUnitStates()
-		const registeredOffsets = unitStates.map((unitState) => unitState.offset)
-		setOffsets(registeredOffsets)
+		setUnitStates(unitStates)
 	}
 	useEffect(() => {
 		void initializeInputs()
+		const intervalHandler = setInterval(async () => {
+			const newUnitStates = await getUnitStates()
+			setUnitStates(newUnitStates)
+		}, 1000)
+		return () => clearInterval(intervalHandler)
 	}, [])
+	
 
 	async function handleMainFormSubmit(mainFormValues: MainValues) {
 		const response = await fetch('/main', {
@@ -127,9 +144,9 @@ export default function App() {
 			// We need to wait a bit before updating the offsets
 			// because we need to wait for the server to update the offset of the unit via I2C.
 			// Learn more about this situation by reading the comment of `updateOffset` function in the server code.
-			const registeredOffsets = (await getUnitStates()).map((unitState) => unitState.offset)
-			setOffsets(registeredOffsets)
-		}, 500)
+			const newUnitStates = await getUnitStates()
+			setUnitStates(newUnitStates)
+		}, 1024)
 		if (response.ok) {
 			messageApi.success('Successfully updated the offset value')
 		} else {
@@ -153,7 +170,7 @@ export default function App() {
 			messageApi.error('Failed to update the misc values')
 		}
 	}
-	
+
 	const handleRestart = async () => {
 		const response = await fetch('/restart', {
 			method: 'POST',
@@ -167,7 +184,7 @@ export default function App() {
 		}
 	}
 
-	const ipAddressRules = [{pattern: ipRegex, message: 'Please enter a valid IP address.'}]
+	const ipAddressRules = [{ pattern: ipRegex, message: 'Please enter a valid IP address.' }]
 
 	return (
 		<div className='mx-4 my-2'>
@@ -205,7 +222,10 @@ export default function App() {
 									/>
 								</Form.Item>
 								<Form.Item name="text" label="Text" hidden={selectedMode !== 'text'} >
-									<Input showCount maxLength={offsets.length}/>
+									<Input
+										showCount
+										maxLength={unitStates.avrs.length}
+									/>
 								</Form.Item>
 								<Form.Item className='self-center'>
 									<Button type="primary" htmlType='submit'>Update</Button>
@@ -268,35 +288,55 @@ export default function App() {
 					</Form>
 
 					<Card title="Operations">
-						<Button type="primary" onClick={handleRestart}>Restart</Button>
+						<div className='flex flex-col gap-4 items-center'>
+							<Button type="primary" onClick={handleRestart}>Restart</Button>
+						</div>
 					</Card>
 				</div>
 
 				<Card title="Unit Settings">
 					<div className='flex flex-row flex-wrap gap-6 items-center'>
-						<Table dataSource={offsets.map((offset, index) => ({ unit: index, offset }))}>
-							<Table.Column title="Unit" dataIndex="unit" key="unit" />
+						<Table dataSource={unitStates.avrs}>
+							<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
 							<Table.Column title="Offset" dataIndex="offset" key="offset"
 								render={(offset, _record, index) => (
 									<InputNumber
-									className='max-w-20'
-									type="number"
-									name="offset"
-									value={offset}
-									min={0}
-									max={9999}
-									onChange={(value) => {
-										const newOffsets = [...offsets]
-										newOffsets[index] = parseInt(value)
-										setOffsets(newOffsets)
-										console.log(`newOffsets: ${newOffsets}`)
-									}}
-								/>
+										className='max-w-20'
+										type="number"
+										name="offset"
+										value={offset}
+										min={0}
+										max={9999}
+										onChange={(value) => {
+											setUnitStates((current) => ({
+												...current,
+												avrs: current.avrs.map((avr, i) => {
+													if (i === index) {
+														return {
+															...avr,
+															offset: parseInt(value)
+														}
+													}
+													return avr
+												})
+											}))
+										}}
+									/>
 								)}
 							/>
 							<Table.Column title="Update" key="update"
-								render={(_text, _record, index) => (
-									<Button type="primary" onClick={() => handleOffsetFormSubmitForUnit(index)(offsets[index])}>Update</Button>
+								render={(_update, _record, index) => (
+									<Button type="primary" onClick={() => handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)}>Update</Button>
+								)}
+							/>
+							<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
+								render={(rotating) => (
+									<Radio checked={rotating} />
+								)}
+							/>
+							<Table.Column title="Last Response (ms ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
+								render={(lastResponseAtMillis) => (
+									<Typography.Text>{unitStates.esp.currentMillis - lastResponseAtMillis}</Typography.Text>
 								)}
 							/>
 						</Table>

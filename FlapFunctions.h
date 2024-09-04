@@ -20,6 +20,8 @@ bool isDisplayMoving();
 UnitState fetchUnitState(int unitAddr);
 void fetchAndSetUnitStates();
 UnitState* getUnitStates();
+String getUnitStatesStringCache();
+void updateUnitStatesStringCache();
 String getOffsetsInString();
 void updateOffset(bool force);
 String leftString(String message);

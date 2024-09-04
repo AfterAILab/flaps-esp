@@ -1,9 +1,11 @@
 #include <Wire.h>
 #include <ezTime.h>
+#include <Arduino_JSON.h>
 #include "FlapFunctions.h"
 #include "prefs.h"
 #include "WifiFunctions.h"
 #include "utils.h"
+#include "env.h"
 
 int displayState[MAX_NUM_UNITS];
 UnitState unitStates[MAX_NUM_UNITS];
@@ -194,12 +196,14 @@ int checkIfMoving(int address)
 UnitState fetchUnitState(int unitAddr)
 {
   Wire.requestFrom(unitAddr, ANSWER_SIZE, 1);
-  bool rotating = bool(Wire.read()); // 0 = not rotating, 1 = rotating
+  // rotationRaw is, -1 = not connected, 0 = not rotating, 1 = rotating
+  int rotatingRaw = Wire.read();
+  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? getUnitStates()[unitAddr].lastResponseAtMillis : millis();
+  bool rotating = rotatingRaw == 1;
   int offsetMSB = Wire.read();
   int offsetLSB = Wire.read();
   int offset = (offsetMSB << 8) | offsetLSB;
-  Serial.printf("Offset at %d is %d\n", unitAddr, offset);
-  return UnitState{unitAddr, rotating, offset, millis()};
+  return UnitState{unitAddr, rotating, offset, lastResponseAtMillis};
 }
 
 void fetchAndSetUnitStates()
@@ -208,9 +212,28 @@ void fetchAndSetUnitStates()
   {
     unitStates[i] = fetchUnitState(i);
   }
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt("numUnits", MAX_NUM_UNITS);
-  prefs.end();
+}
+
+String unitStatesStringCache = "";
+
+void updateUnitStatesStringCache()
+{
+  JSONVar j;
+  UnitState* unitStates = getUnitStates();
+  for (int i = 0; i < MAX_NUM_UNITS; i++) {
+      UnitState unitState = unitStates[i];
+      j["avrs"][i]["unitAddr"] = unitState.unitAddr;
+      j["avrs"][i]["rotating"] = unitState.rotating;
+      j["avrs"][i]["offset"] = unitState.offset;
+      j["avrs"][i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
+  }
+  j["esp"]["currentMillis"] = millis();
+  Serial.printf("Current millis: %d\n", millis());
+  unitStatesStringCache = JSON.stringify(j);
+}
+
+String getUnitStatesStringCache(){
+  return unitStatesStringCache;
 }
 
 UnitState* getUnitStates()
