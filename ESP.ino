@@ -298,6 +298,21 @@ void setup()
         String jsonResponse = getOffsetsInString();
         request->send(200, "application/json", jsonResponse); });
 
+  server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      // Return all the unit states in JSON format
+      JSONVar j;
+      UnitState* unitStates = getUnitStates();
+      for (int i = 0; i < MAX_NUM_UNITS; i++) {
+          UnitState unitState = unitStates[i];
+          j[i]["unitAddr"] = unitState.unitAddr;
+          j[i]["rotating"] = unitState.rotating;
+          j[i]["offset"] = unitState.offset;
+          j[i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
+      }
+      String json = JSON.stringify(j);
+      request->send(200, "application/json", json); });
+
   server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
       Serial.println("Restarting...");

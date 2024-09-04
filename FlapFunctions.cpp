@@ -2,7 +2,6 @@
 #include <ezTime.h>
 #include "FlapFunctions.h"
 #include "prefs.h"
-#include "env.h"
 #include "WifiFunctions.h"
 #include "utils.h"
 
@@ -212,6 +211,11 @@ void fetchAndSetUnitStates()
   prefs.begin(APP_NAME_SHORT, false);
   prefs.putInt("numUnits", MAX_NUM_UNITS);
   prefs.end();
+}
+
+UnitState* getUnitStates()
+{
+  return unitStates;
 }
 
 // returns offset from all units

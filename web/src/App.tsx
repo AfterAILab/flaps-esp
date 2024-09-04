@@ -29,6 +29,13 @@ type OffsetValues = {
 	offset: number
 }
 
+type UnitState = {
+	unitAddr: number
+	offset: number
+	rotating: boolean
+	lastResponseAtMillis: number
+}
+
 export default function App() {
 	const [messageApi, contextHolder] = message.useMessage();
 	const [meta, setMeta] = useState<MetaValues>({
@@ -57,8 +64,8 @@ export default function App() {
 		const data = await res.json();
 		return data;
 	}
-	async function getRegisteredOffsets() {
-		const res = await fetch('/offset')
+	async function getUnitStates(): Promise<UnitState[]> {
+		const res = await fetch('/unit');
 		const data = await res.json()
 		return data
 	}
@@ -77,7 +84,8 @@ export default function App() {
 		wifiForm.setFieldsValue(registeredWifiValues)
 		const registeredMiscValues = await getRegisteredMiscValues()
 		miscForm.setFieldsValue(registeredMiscValues)
-		const registeredOffsets = await getRegisteredOffsets()
+		const unitStates = await getUnitStates()
+		const registeredOffsets = unitStates.map((unitState) => unitState.offset)
 		setOffsets(registeredOffsets)
 	}
 	useEffect(() => {
@@ -119,7 +127,7 @@ export default function App() {
 			// We need to wait a bit before updating the offsets
 			// because we need to wait for the server to update the offset of the unit via I2C.
 			// Learn more about this situation by reading the comment of `updateOffset` function in the server code.
-			const registeredOffsets = await getRegisteredOffsets()
+			const registeredOffsets = (await getUnitStates()).map((unitState) => unitState.offset)
 			setOffsets(registeredOffsets)
 		}, 500)
 		if (response.ok) {
@@ -264,7 +272,7 @@ export default function App() {
 					</Card>
 				</div>
 
-				<Card title="Offset Settings">
+				<Card title="Unit Settings">
 					<div className='flex flex-row flex-wrap gap-6 items-center'>
 						<Table dataSource={offsets.map((offset, index) => ({ unit: index, offset }))}>
 							<Table.Column title="Unit" dataIndex="unit" key="unit" />
