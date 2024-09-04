@@ -31,7 +31,7 @@ void setup()
 #endif
   // Initialize NVS and determine operation mode
   prefs.begin(APP_NAME_SHORT, false); // Opens in read/write mode in the nvs flash section
-  operationMode = prefs.getInt("nextOperationMode", OPERATION_MODE_AP);
+  operationMode = prefs.getInt("nextOperationMode", OPERATION_MODE_STA);
   prefs.putInt("nextOperationMode", OPERATION_MODE_AP);
   prefs.end();
 
@@ -308,7 +308,7 @@ void setup()
   Serial.println("HTTP server starting");
   server.begin();
   Serial.println("HTTP server started");
-  readOffsets();
+  fetchAndSetUnitStates();
   if (operationMode == OPERATION_MODE_STA)
   {
     // Display the current IP address
