@@ -1,13 +1,14 @@
 #include <Wire.h>
 #include <ezTime.h>
+#include <Arduino_JSON.h>
 #include "FlapFunctions.h"
 #include "prefs.h"
-#include "env.h"
 #include "WifiFunctions.h"
 #include "utils.h"
+#include "env.h"
 
 int displayState[MAX_NUM_UNITS];
-int offsets[MAX_NUM_UNITS];
+UnitState unitStates[MAX_NUM_UNITS];
 Timezone timezone;
 const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
 
@@ -44,7 +45,7 @@ void updateOffset(bool force)
   int address = getOffsetUpdateUnitAddr();
   int offset = getOffsetUpdateOffset();
 
-  int currentOffset = readOffset(address);
+  int currentOffset = unitStates[address].offset;
 
   if (!force && currentOffset == offset)
   {
@@ -65,7 +66,7 @@ void updateOffset(bool force)
   int retEndTransmission = Wire.endTransmission();
   Serial.printf("EndTransmission returned: %d\n", retEndTransmission);
   // Update offset in local array for the browser to see the change immediately
-  offsets[address] = offset;
+  unitStates[address] = fetchUnitState(address);
 }
 
 // write letter position and rpm in rpm to single unit
@@ -133,7 +134,7 @@ void showMessage(String message, int flapRpm)
     char currentLetter = message[i];
     int currentLetterPosition = translateLettertoInt(currentLetter);
 #ifdef serial
-    Serial.print("Unit Nr.: ");
+    Serial.print("Unit No.: ");
     Serial.print(i);
     Serial.print(" Letter: ");
     Serial.print(message[i]);
@@ -192,46 +193,52 @@ int checkIfMoving(int address)
   return active;
 }
 
-int readOffset(int address)
+UnitState fetchUnitState(int unitAddr)
 {
-  Wire.requestFrom(address, ANSWER_SIZE, 1);
-  Wire.read(); // Throw away the first byte, it's the isActive byte
+  Wire.requestFrom(unitAddr, ANSWER_SIZE, 1);
+  // rotationRaw is, -1 = not connected, 0 = not rotating, 1 = rotating
+  int rotatingRaw = Wire.read();
+  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? getUnitStates()[unitAddr].lastResponseAtMillis : millis();
+  bool rotating = rotatingRaw == 1;
   int offsetMSB = Wire.read();
   int offsetLSB = Wire.read();
   int offset = (offsetMSB << 8) | offsetLSB;
-  Serial.printf("Offset at %d is %d\n", address, offset);
-  return offset;
+  return UnitState{unitAddr, rotating, offset, lastResponseAtMillis};
 }
 
-// readOffsets from all units
-void readOffsets()
+void fetchAndSetUnitStates()
 {
-  int i = 0;
-  for (; i < MAX_NUM_UNITS; i++)
+  for (int i = 0; i < MAX_NUM_UNITS; i++)
   {
-    offsets[i] = readOffset(i);
-    if (offsets[i] == -1)
-    {
-      // TODO: Delete this condition for production
-      // The first unit is broken in the prototype
-      #ifdef serial
-      if (i == 0) {
-        continue;
-      }
-      #endif
-      Serial.printf("Unit %d is not available\n", i);
-      break;
-    }
+    unitStates[i] = fetchUnitState(i);
   }
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt("numUnits", i);
-  prefs.end();
 }
 
-// returns offset from single unit
-int getOffset(int address)
+String unitStatesStringCache = "";
+
+void updateUnitStatesStringCache()
 {
-  return offsets[address];
+  JSONVar j;
+  UnitState* unitStates = getUnitStates();
+  for (int i = 0; i < MAX_NUM_UNITS; i++) {
+      UnitState unitState = unitStates[i];
+      j["avrs"][i]["unitAddr"] = unitState.unitAddr;
+      j["avrs"][i]["rotating"] = unitState.rotating;
+      j["avrs"][i]["offset"] = unitState.offset;
+      j["avrs"][i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
+  }
+  j["esp"]["currentMillis"] = millis();
+  Serial.printf("Current millis: %d\n", millis());
+  unitStatesStringCache = JSON.stringify(j);
+}
+
+String getUnitStatesStringCache(){
+  return unitStatesStringCache;
+}
+
+UnitState* getUnitStates()
+{
+  return unitStates;
 }
 
 // returns offset from all units
@@ -243,7 +250,7 @@ String getOffsetsInString()
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {
-    offsetString += String(offsets[i]);
+    offsetString += String(unitStates[i].offset);
     if (i < numUnits - 1)
     {
       offsetString += ",";

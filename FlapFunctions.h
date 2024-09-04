@@ -4,15 +4,24 @@
 #include <Arduino.h>
 #include "stringHandling.h"
 
+struct UnitState {
+    int unitAddr;
+    bool rotating;
+    int offset;
+    unsigned long lastResponseAtMillis; // millis() when the last response was received. Wraps around every 49 days.
+};
+
 void showNewData(String message);
 void showDate();
 void showClock();
 void updateTimezone();
 void showMessage(String message, int flapRpm);
 bool isDisplayMoving();
-int readOffset(int address);
-void readOffsets();
-int getOffset(int unitAddr);
+UnitState fetchUnitState(int unitAddr);
+void fetchAndSetUnitStates();
+UnitState* getUnitStates();
+String getUnitStatesStringCache();
+void updateUnitStatesStringCache();
 String getOffsetsInString();
 void updateOffset(bool force);
 String leftString(String message);

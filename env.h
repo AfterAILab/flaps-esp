@@ -18,7 +18,7 @@
 #define ANSWER_SIZE 3
 
 #ifndef MAX_NUM_UNITS
-#define MAX_NUM_UNITS 256
+#define MAX_NUM_UNITS 128
 #endif
 
 #ifndef NUM_FLAPS

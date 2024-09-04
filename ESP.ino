@@ -31,7 +31,7 @@ void setup()
 #endif
   // Initialize NVS and determine operation mode
   prefs.begin(APP_NAME_SHORT, false); // Opens in read/write mode in the nvs flash section
-  operationMode = prefs.getInt("nextOperationMode", OPERATION_MODE_AP);
+  operationMode = prefs.getInt("nextOperationMode", OPERATION_MODE_STA);
   prefs.putInt("nextOperationMode", OPERATION_MODE_AP);
   prefs.end();
 
@@ -298,6 +298,40 @@ void setup()
         String jsonResponse = getOffsetsInString();
         request->send(200, "application/json", jsonResponse); });
 
+  server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+    updateUnitStatesStringCache();
+    // Return all the unit states in JSON format
+    // Responding with chunks is necessary to send large data with AsyncWebServer
+    // However, this impelmentation is not working as expected for MAX_NUM_UNITS=256
+    // TODO: Fix this implementation
+    AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
+                                      [](uint8_t* buffer, size_t maxLen, size_t index)
+    {
+      Serial.printf("Beginning of chunk response index=%d, maxLen=%d\n", index, maxLen);
+      String jsonStringCache = getUnitStatesStringCache();
+      Serial.println("After getUnitStatesStringCache()");
+      const char* jsonCChar = jsonStringCache.c_str();
+      Serial.println("After jsonStringCache.c_str()");
+      if (strlen(jsonCChar) <= index)
+      {
+        Serial.printf("strlen(jsonCChar) <= index, strlen(jsonCChar)=%d, index=%d\n", strlen(jsonCChar), index);
+        return 0;
+      }
+      if (jsonCChar == NULL)
+      {
+        Serial.println("jsonCChar == NULL");
+        return 0;
+      }
+      Serial.printf("Normal case, strlen(jsonCChar)=%d, index=%d\n", strlen(jsonCChar), index);
+      // Copy the next chunk of the data (json) to the buffer. Return the length copied.
+      size_t remainingLen = strlen(jsonCChar + index);
+      int toCopy = maxLen > remainingLen ? remainingLen : maxLen;
+      memcpy(buffer, jsonCChar + index, toCopy);
+      return toCopy;
+    });
+    request -> send(response); });
+
   server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
       Serial.println("Restarting...");
@@ -308,7 +342,7 @@ void setup()
   Serial.println("HTTP server starting");
   server.begin();
   Serial.println("HTTP server started");
-  readOffsets();
+  fetchAndSetUnitStates();
   if (operationMode == OPERATION_MODE_STA)
   {
     // Display the current IP address
@@ -335,6 +369,8 @@ void loop()
       prefs.putInt("nextOperationMode", OPERATION_MODE_STA);
       prefs.end();
     }
+
+    fetchAndSetUnitStates();
 
     if (operationMode == OPERATION_MODE_STA)
     {
