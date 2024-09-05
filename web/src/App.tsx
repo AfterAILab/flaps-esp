@@ -369,6 +369,7 @@ export default function App() {
 									<Button type="primary" onClick={async () => {
 										await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
 										setUnitsScan('per second')
+										clearInterval(getAndSetUnitStatesIntervalHandler)
 										const unitStatesHandeler = setInterval(async () => {
 											const newUnitStates = await getUnitStates()
 											setUnitStates(newUnitStates)
