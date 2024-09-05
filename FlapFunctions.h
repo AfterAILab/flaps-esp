@@ -12,6 +12,8 @@ struct UnitState {
 };
 
 void showNewData(String message);
+String getDateString();
+String getClockString();
 void showDate();
 void showClock();
 void updateTimezone();

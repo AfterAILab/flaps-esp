@@ -43,6 +43,10 @@ type UnitStates = {
 	}
 }
 
+type ClockValues = {
+	clock: string
+}
+
 export default function App() {
 	const [messageApi, contextHolder] = message.useMessage();
 	const [meta, setMeta] = useState<MetaValues>({
@@ -59,13 +63,15 @@ export default function App() {
 	const [wifiForm] = Form.useForm()
 	const [selectedIpAssignment, setSelectedIpAssignment] = useState<string>("dynamic")
 	const [miscForm] = Form.useForm()
+	const [clock, setClock] = useState<ClockValues>({
+		clock: ""
+	})
 
 	async function getMetaValues() {
 		const res = await fetch("/meta");
 		const data = await res.json();
 		return data;
 	}
-
 	async function getRegisteredMainValues() {
 		const res = await fetch('/main');
 		const data = await res.json();
@@ -86,6 +92,11 @@ export default function App() {
 		const data = await res.json()
 		return data
 	}
+	async function getClockValues() {
+		const res = await fetch('/clock')
+		const data = await res.json()
+		return data
+	}
 	async function initializeInputs() {
 		const metaValues = await getMetaValues()
 		setMeta(metaValues)
@@ -98,12 +109,16 @@ export default function App() {
 		miscForm.setFieldsValue(registeredMiscValues)
 		const unitStates = await getUnitStates()
 		setUnitStates(unitStates)
+		const clockValues = await getClockValues()
+		setClock(clockValues)
 	}
 	useEffect(() => {
 		void initializeInputs()
 		const intervalHandler = setInterval(async () => {
 			const newUnitStates = await getUnitStates()
 			setUnitStates(newUnitStates)
+			const clock = await getClockValues()
+			setClock(clock)
 		}, 1000)
 		return () => clearInterval(intervalHandler)
 	}, [])
@@ -159,6 +174,7 @@ export default function App() {
 	}
 
 	async function handleMiscFormSubmit(miscFormValues: MiscValues) {
+		console.log(`misc post. Input: ${stringify(miscFormValues)}`)
 		const response = await fetch('/misc', {
 			method: 'POST',
 			body: stringify(miscFormValues),
@@ -280,6 +296,7 @@ export default function App() {
 										options={tzIdentifiers.map((value) => ({ value, label: value }))}
 									/>
 								</Form.Item>
+								<Typography.Text>Current Time: {clock.clock}</Typography.Text>
 								<Form.Item className='self-center'>
 									<Button type="primary" htmlType="submit">Update</Button>
 								</Form.Item>

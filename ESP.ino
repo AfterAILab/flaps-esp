@@ -241,6 +241,8 @@ void setup()
         }
 
         if (jsonObj.hasOwnProperty("timezone")) {
+            Serial.print("Setting timezone: ");
+            Serial.println((const char*) jsonObj["timezone"]);
             prefs.begin(APP_NAME_SHORT, false);
             prefs.putString("timezone", (const char*) jsonObj["timezone"]);
             prefs.end();
@@ -249,11 +251,18 @@ void setup()
 
         JSONVar j;
         prefs.begin(APP_NAME_SHORT, true);
-        j["timezone"] = prefs.getString("timezone", "");
+        j["timezone"] = prefs.getString("timezone");
         prefs.end();
-
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
+
+  server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      String clock = getClockString();
+      JSONVar j;
+      j["clock"] = clock;
+      String json = JSON.stringify(j);
+      request->send(200, "application/json", json); });
 
   server.on("/offset", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -308,22 +317,16 @@ void setup()
     AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
                                       [](uint8_t* buffer, size_t maxLen, size_t index)
     {
-      Serial.printf("Beginning of chunk response index=%d, maxLen=%d\n", index, maxLen);
       String jsonStringCache = getUnitStatesStringCache();
-      Serial.println("After getUnitStatesStringCache()");
       const char* jsonCChar = jsonStringCache.c_str();
-      Serial.println("After jsonStringCache.c_str()");
       if (strlen(jsonCChar) <= index)
       {
-        Serial.printf("strlen(jsonCChar) <= index, strlen(jsonCChar)=%d, index=%d\n", strlen(jsonCChar), index);
         return 0;
       }
       if (jsonCChar == NULL)
       {
-        Serial.println("jsonCChar == NULL");
         return 0;
       }
-      Serial.printf("Normal case, strlen(jsonCChar)=%d, index=%d\n", strlen(jsonCChar), index);
       // Copy the next chunk of the data (json) to the buffer. Return the length copied.
       size_t remainingLen = strlen(jsonCChar + index);
       int toCopy = maxLen > remainingLen ? remainingLen : maxLen;

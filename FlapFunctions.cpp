@@ -158,6 +158,16 @@ void updateTimezone()
   timezone.setLocation(timezoneString);
 }
 
+String getDateString()
+{
+  return timezone.dateTime(DATE_FORMAT);
+}
+
+String getClockString()
+{
+  return timezone.dateTime(CLOCK_FORMAT);
+}
+
 void showDate()
 {
   showNewData(timezone.dateTime(DATE_FORMAT));
