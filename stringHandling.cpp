@@ -12,7 +12,7 @@ String cleanString(String message) {
 String centerString(String message) {
   //Takes care of the left side of the text (if any)
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   int leftSpaceAmount = (numUnits - (int)message.length()) / 2;
   for (int i = 0; i < leftSpaceAmount; i++) {
@@ -34,7 +34,7 @@ String centerString(String message) {
 //aligns string on right side of array and fills empty chars with spaces
 String rightString(String message) {
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   int rightSpaceAmount = (numUnits - message.length());
   for (int i = 0; i < rightSpaceAmount; i++) {
@@ -49,7 +49,7 @@ String rightString(String message) {
 //aligns string on left side of array and fills empty chars with spaces
 String leftString(String message) {
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   int leftSpaceAmount = (numUnits - message.length());
   for (int i = 0; i < leftSpaceAmount; i++) {

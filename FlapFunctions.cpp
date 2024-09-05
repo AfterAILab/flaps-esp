@@ -125,7 +125,7 @@ void showMessage(String message, int flapRpm)
   }
 
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   Serial.print("Number of units: ");
   Serial.println(numUnits);
@@ -225,28 +225,42 @@ void fetchAndSetUnitStates()
 }
 
 String unitStatesStringCache = "";
+const char emptyArray[] = "[]";
 
 void updateUnitStatesStringCache()
 {
   JSONVar j;
-  UnitState* unitStates = getUnitStates();
-  for (int i = 0; i < MAX_NUM_UNITS; i++) {
+  UnitState *unitStates = getUnitStates();
+  prefs.begin(APP_NAME_SHORT, true);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  prefs.end();
+  if (numUnits <= 0)
+  {
+    // Empty array for avrs
+    j["avrs"] = JSON.parse(emptyArray);
+  }
+  else
+  {
+    for (int i = 0; i < numUnits; i++)
+    {
       UnitState unitState = unitStates[i];
       j["avrs"][i]["unitAddr"] = unitState.unitAddr;
       j["avrs"][i]["rotating"] = unitState.rotating;
       j["avrs"][i]["offset"] = unitState.offset;
       j["avrs"][i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
+    }
   }
   j["esp"]["currentMillis"] = millis();
   Serial.printf("Current millis: %d\n", millis());
   unitStatesStringCache = JSON.stringify(j);
 }
 
-String getUnitStatesStringCache(){
+String getUnitStatesStringCache()
+{
   return unitStatesStringCache;
 }
 
-UnitState* getUnitStates()
+UnitState *getUnitStates()
 {
   return unitStates;
 }
@@ -256,7 +270,7 @@ String getOffsetsInString()
 {
   String offsetString = "[";
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {
@@ -275,7 +289,7 @@ bool isDisplayMoving()
 {
   // Request all units moving state and write to array
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt("numUnits", 0);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {

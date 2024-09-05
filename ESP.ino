@@ -120,6 +120,20 @@ void setup()
             Serial.println(getMode());
         }
 
+        if (jsonObj.hasOwnProperty(PARAM_NUM_UNITS)) {
+            JSONVar numUnits = jsonObj[PARAM_NUM_UNITS];
+            if (JSON.typeof(numUnits) == "number") {
+                // Process the numUnits value
+                Serial.print("numUnits set to: ");
+                Serial.println(numUnits);
+                writeThroughNumUnits(numUnits);
+            } else {
+                Serial.println("numUnits is not a valid number.");
+                request->send(400, "application/json", "{\"error\":\"numUnits must be a number\"}");
+                return;
+            }
+        }
+
         if (jsonObj.hasOwnProperty("text")) {
             setText((const char*) jsonObj["text"]);
             Serial.print("Input 1 set to: ");

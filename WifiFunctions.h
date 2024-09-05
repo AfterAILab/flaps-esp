@@ -9,11 +9,13 @@
 void writeThroughAlignment(String message);
 void writeThroughRpm(int message);
 void writeThroughMode(String message);
+void writeThroughNumUnits(int message);
 void setText(String message);
 void setOffsetUpdateUnitAddr(int unitAddr);
 void setOffsetUpdateOffset(int offset);
 String getAlignment();
 String getMode();
+int getNumUnits();
 String getText();
 int getRpm();
 String getWrittenLast();
