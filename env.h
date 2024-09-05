@@ -25,13 +25,9 @@
 #define NUM_FLAPS 45
 #endif
 
-#ifndef COMMAND_UPDATE_OFFSET
 #define COMMAND_UPDATE_OFFSET 0
-#endif
-
-#ifndef COMMAND_SHOW_LETTER
 #define COMMAND_SHOW_LETTER 1
-#endif
+#define COMMAND_RESTART 2
 
 #ifndef OPERATION_MODE_AP
 #define OPERATION_MODE_AP 0

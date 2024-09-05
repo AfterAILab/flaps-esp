@@ -69,8 +69,16 @@ void updateOffset(bool force)
   unitStates[address] = fetchUnitState(address);
 }
 
+// restarts single unit. Returns true if successful
+bool restartUnit(int unitAddr){
+  Wire.beginTransmission(unitAddr);
+  Wire.write(COMMAND_RESTART);
+  int retEndTransmission = Wire.endTransmission();
+  return retEndTransmission == 0;
+}
+
 // write letter position and rpm in rpm to single unit
-void writeToUnit(int address, int letter, int flapRpm)
+bool writeToUnit(int address, int letter, int flapRpm)
 {
   int sendArray[2] = {letter, flapRpm}; // Array with values to send to unit
 
@@ -88,7 +96,7 @@ void writeToUnit(int address, int letter, int flapRpm)
 #endif
     Wire.write(sendArray[i]);
   }
-  Wire.endTransmission(); // send values to unit
+  return Wire.endTransmission() == 0; // send values to unit
 }
 
 // pushes message to units

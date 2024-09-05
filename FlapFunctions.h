@@ -24,6 +24,7 @@ String getUnitStatesStringCache();
 void updateUnitStatesStringCache();
 String getOffsetsInString();
 void updateOffset(bool force);
+bool restartUnit(int unitAddr);
 String leftString(String message);
 String rightString(String message);
 String centerString(String message);
