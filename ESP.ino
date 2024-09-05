@@ -255,6 +255,14 @@ void setup()
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
 
+  server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      String clock = getClockString();
+      JSONVar j;
+      j["clock"] = clock;
+      String json = JSON.stringify(j);
+      request->send(200, "application/json", json); });
+
   server.on("/offset", HTTP_GET, [](AsyncWebServerRequest *request)
             {
       // Return all the offsets in JSON format
