@@ -49,21 +49,11 @@
 #define CLOCK_FORMAT "Y-m-d H:i"
 #endif
 
-#ifndef PARAM_ALIGNMENT
 #define PARAM_ALIGNMENT "alignment"
-#endif
-
-#ifndef PARAM_RPM
 #define PARAM_RPM "rpm"
-#endif
-
-#ifndef PARAM_MODE
 #define PARAM_MODE "mode"
-#endif
-
-#ifndef PARAM_TEXT
+#define PARAM_NUM_UNITS "numUnits"
 #define PARAM_TEXT "text"
-#endif
 
 #ifndef PARAM_OFFSET_UNIT_ADDR
 #define PARAM_OFFSET_UNIT_ADDR "unit"

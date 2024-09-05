@@ -12,6 +12,7 @@ type MetaValues = {
 type MainValues = {
 	alignment: string
 	rpm: number
+	numUnits: number
 	mode: string
 }
 
@@ -85,6 +86,14 @@ export default function App() {
 	async function getUnitStates(): Promise<UnitStates> {
 		const res = await fetch('/unit');
 		const data = await res.json()
+		// As I could not find a way to make Arduino_JSON generate an empty array string, I have to do this workaround.
+		// TODO: Find a way to make Arduino_JSON generate an empty array string.
+		if (data.avrs === undefined || data.avrs === null) {
+			return {
+				...data,
+				avrs: []
+			}
+		}
 		return data
 	}
 	async function getRegisteredMiscValues() {
@@ -122,7 +131,7 @@ export default function App() {
 		}, 1000)
 		return () => clearInterval(intervalHandler)
 	}, [])
-	
+
 
 	async function handleMainFormSubmit(mainFormValues: MainValues) {
 		const response = await fetch('/main', {
@@ -237,6 +246,9 @@ export default function App() {
 										buttonStyle='solid'
 									/>
 								</Form.Item>
+								<Form.Item name="numUnits" label="Number of Units">
+									<InputNumber min={0} max={128} />
+								</Form.Item>
 								<Form.Item name="text" label="Text" hidden={selectedMode !== 'text'} >
 									<Input
 										showCount
@@ -289,14 +301,16 @@ export default function App() {
 					<Form form={miscForm} onFinish={handleMiscFormSubmit}>
 						<Card title="Misc Settings">
 							<div className='flex flex-col gap-4 items-start'>
-								<Form.Item name="timezone" label="Timezone">
-									<Select
-										className='min-w-64'
-										showSearch
-										options={tzIdentifiers.map((value) => ({ value, label: value }))}
-									/>
-								</Form.Item>
-								<Typography.Text>Current Time: {clock.clock}</Typography.Text>
+								<div className='flex flex-col items-start'>
+									<Form.Item name="timezone" label="Timezone">
+										<Select
+											className='min-w-64'
+											showSearch
+											options={tzIdentifiers.map((value) => ({ value, label: value }))}
+										/>
+									</Form.Item>
+									<Typography.Text>Current Time: {clock.clock}</Typography.Text>
+								</div>
 								<Form.Item className='self-center'>
 									<Button type="primary" htmlType="submit">Update</Button>
 								</Form.Item>

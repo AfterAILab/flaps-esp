@@ -12,6 +12,7 @@ String writtenLast;
 String alignment;
 int rpm;
 String mode;
+int numUnits;
 String text;
 int offsetUpdateUnitAddr = -1;
 int offsetUpdateOffset = -1;
@@ -37,6 +38,14 @@ void writeThroughMode(String message)
   mode = message;
   prefs.begin(APP_NAME_SHORT, false);
   prefs.putString(PARAM_MODE, mode);
+  prefs.end();
+}
+
+void writeThroughNumUnits(int message)
+{
+  numUnits = message;
+  prefs.begin(APP_NAME_SHORT, false);
+  prefs.putInt(PARAM_NUM_UNITS, numUnits);
   prefs.end();
 }
 
@@ -75,6 +84,11 @@ int getRpm()
   return rpm;
 }
 
+int getNumUnits()
+{
+  return numUnits;
+}
+
 String getWrittenLast()
 {
   return writtenLast;
@@ -110,6 +124,7 @@ String getMainValues()
   values[PARAM_ALIGNMENT] = alignment;
   values[PARAM_RPM] = rpm;
   values[PARAM_MODE] = mode;
+  values[PARAM_NUM_UNITS] = numUnits;
 
   String jsonString = JSON.stringify(values);
   return jsonString;
