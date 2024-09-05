@@ -122,7 +122,7 @@ export default function App() {
 		}, 1000)
 		return () => clearInterval(intervalHandler)
 	}, [])
-	
+
 
 	async function handleMainFormSubmit(mainFormValues: MainValues) {
 		const response = await fetch('/main', {
@@ -161,7 +161,7 @@ export default function App() {
 			// Learn more about this situation by reading the comment of `updateOffset` function in the server code.
 			const newUnitStates = await getUnitStates()
 			setUnitStates(newUnitStates)
-		}, 1024)
+		}, 1000)
 		if (response.ok) {
 			messageApi.success('Successfully updated the offset value')
 		} else {
@@ -187,10 +187,13 @@ export default function App() {
 		}
 	}
 
-	const handleRestart = async () => {
+	const handleRestart = async (unitAddr?: number) => {
+		const body = unitAddr !== undefined
+			? stringify({ unitAddr })
+			: stringify({}) // Gotcha: This empty body is necessary for fetch to send a POST request
 		const response = await fetch('/restart', {
 			method: 'POST',
-			body: stringify({}) // Gotcha: This empty body is necessary for fetch to send a POST request
+			body,
 		})
 		if (response.ok) {
 			messageApi.success('Restarting the device')
@@ -306,59 +309,62 @@ export default function App() {
 
 					<Card title="Operations">
 						<div className='flex flex-col gap-4 items-center'>
-							<Button type="primary" onClick={handleRestart}>Restart</Button>
+							<Button type="primary" onClick={() => {handleRestart()}}>Restart</Button>
 						</div>
 					</Card>
 				</div>
 
-				<Card title="Unit Settings">
-					<div className='flex flex-row flex-wrap gap-6 items-center'>
-						<Table dataSource={unitStates.avrs}>
-							<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
-							<Table.Column title="Offset" dataIndex="offset" key="offset"
-								render={(offset, _record, index) => (
-									<InputNumber
-										className='max-w-20'
-										type="number"
-										name="offset"
-										value={offset}
-										min={0}
-										max={9999}
-										onChange={(value) => {
-											setUnitStates((current) => ({
-												...current,
-												avrs: current.avrs.map((avr, i) => {
-													if (i === index) {
-														return {
-															...avr,
-															offset: parseInt(value)
-														}
+				<div className='flex flex-row flex-wrap gap-6 items-center'>
+					<Table title={() => <Typography.Title level={2}>Units</Typography.Title>} dataSource={unitStates.avrs}>
+						<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
+						<Table.Column title="Offset" dataIndex="offset" key="offset"
+							render={(offset, _record, index) => (
+								<InputNumber
+									className='max-w-20'
+									type="number"
+									name="offset"
+									value={offset}
+									min={0}
+									max={9999}
+									onChange={(value) => {
+										setUnitStates((current) => ({
+											...current,
+											avrs: current.avrs.map((avr, i) => {
+												if (i === index) {
+													return {
+														...avr,
+														offset: parseInt(value)
 													}
-													return avr
-												})
-											}))
-										}}
-									/>
-								)}
-							/>
-							<Table.Column title="Update" key="update"
-								render={(_update, _record, index) => (
-									<Button type="primary" onClick={() => handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)}>Update</Button>
-								)}
-							/>
-							<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
-								render={(rotating) => (
-									<Radio checked={rotating} />
-								)}
-							/>
-							<Table.Column title="Last Response (ms ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
-								render={(lastResponseAtMillis) => (
-									<Typography.Text>{unitStates.esp.currentMillis - lastResponseAtMillis}</Typography.Text>
-								)}
-							/>
-						</Table>
-					</div>
-				</Card>
+												}
+												return avr
+											})
+										}))
+									}}
+								/>
+							)}
+						/>
+						<Table.Column title="Update" key="update"
+							render={(_update, _record, index) => (
+								<Button type="primary" onClick={() => handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)}>Update</Button>
+							)}
+						/>
+						<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
+							render={(rotating) => (
+								<Radio checked={rotating} />
+							)}
+						/>
+						<Table.Column title="Last Response (ms ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
+							render={(lastResponseAtMillis) => (
+								<Typography.Text>{unitStates.esp.currentMillis - lastResponseAtMillis}</Typography.Text>
+							)}
+						/>
+						<Table.Column title="Restart" key="restart"
+							render={(_update, _record, index) => (
+								<Button type="primary" onClick={() => { handleRestart(index)}} />
+							)}
+						/>
+					</Table>
+				</div>
 			</div>
 		</div >
 	);

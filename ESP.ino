@@ -337,10 +337,29 @@ void setup()
 
   server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
+      // The body of the request is {unitAddr: number} for restarting AVR of the unit, {} for restarting ESP32.
+      String jsonString = String((char*)data).substring(0, len);
+      JSONVar jsonObj = JSON.parse(jsonString);
+
+      if (JSON.typeof(jsonObj) == "undefined") {
+        Serial.println("Parsing input failed!");
+        request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+        return;
+      }
+
+      if (jsonObj.hasOwnProperty("unitAddr")) {
+        int unitAddr = (int)jsonObj["unitAddr"];
+        Serial.printf("Restarting AVR of unit %d...\n", unitAddr);
+        restartUnit(unitAddr);
+        request->send(200);
+        return;
+      }
+      
       Serial.println("Restarting...");
       request->send(200);
       delay(1000);
-      ESP.restart(); });
+      ESP.restart();
+      });
 
   Serial.println("HTTP server starting");
   server.begin();
@@ -361,11 +380,11 @@ void loop()
   long currentMillis = millis();
 
   // Delay to not spam web requests
-  if (currentMillis - previousFlapMillis >= 1024)
+  if (currentMillis - previousFlapMillis >= 1000)
   {
     previousFlapMillis = currentMillis;
 
-    if (currentMillis >= 1024 * 3 && currentMillis < 1024 * 4)
+    if (currentMillis >= 1000 * 3 && currentMillis < 1000 * 4)
     {
       Serial.println("Set nextOperationMode to STA");
       prefs.begin(APP_NAME_SHORT, false);
