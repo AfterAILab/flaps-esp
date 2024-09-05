@@ -187,7 +187,7 @@ export default function App() {
 				<Typography.Text>Chip ID: {meta.chipId}</Typography.Text>
 			</div>
 			<div className='flex flex-row gap-4'>
-				<div className="flex flex-row flex-wrap gap-4">
+				<div className="flex flex-row flex-wrap gap-4 items-start">
 					<Form form={mainForm} onFinish={handleMainFormSubmit}>
 						<Card title="Main Settings">
 							<div className='flex flex-col gap-4 items-start'>
