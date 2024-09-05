@@ -5,49 +5,6 @@ import stringify from 'safe-stable-stringify';
 import { Typography } from 'antd';
 import { getVersionInfo, ipRegex } from './utils';
 
-type MetaValues = {
-	chipId: string
-}
-
-type MainValues = {
-	alignment: string
-	rpm: number
-	numUnits: number
-	mode: string
-}
-
-type WifiValues = {
-	ssid: string
-	password: string
-}
-
-type MiscValues = {
-	timezone: string
-}
-
-type OffsetValues = {
-	unit: number
-	offset: number
-}
-
-type AvrState = {
-	unitAddr: number
-	offset: number
-	rotating: boolean
-	lastResponseAtMillis: number
-}
-
-type UnitStates = {
-	avrs: AvrState[]
-	esp: {
-		currentMillis: number
-	}
-}
-
-type ClockValues = {
-	clock: string
-}
-
 export default function App() {
 	const [messageApi, contextHolder] = message.useMessage();
 	const [meta, setMeta] = useState<MetaValues>({
@@ -67,6 +24,9 @@ export default function App() {
 	const [clock, setClock] = useState<ClockValues>({
 		clock: ""
 	})
+	const [getAndSetUnitStatesIntervalHandler, setGetAndSetUnitStatesIntervalHandler] = useState<number | undefined>(undefined)
+	const [getAndSetClockIntervalHandler, setGetAndSetClockIntervalHandler] = useState<number | undefined>(undefined)
+	const [unitsScan, setUnitsScan] = useState('per second')
 
 	async function getMetaValues() {
 		const res = await fetch("/meta");
@@ -123,13 +83,20 @@ export default function App() {
 	}
 	useEffect(() => {
 		void initializeInputs()
-		const intervalHandler = setInterval(async () => {
+		const unitStatesHandeler = setInterval(async () => {
 			const newUnitStates = await getUnitStates()
 			setUnitStates(newUnitStates)
+		}, 1000)
+		setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
+		const clockHandler = setInterval(async () => {
 			const clock = await getClockValues()
 			setClock(clock)
 		}, 1000)
-		return () => clearInterval(intervalHandler)
+		setGetAndSetClockIntervalHandler(clockHandler)
+		return () => {
+			clearInterval(getAndSetUnitStatesIntervalHandler)
+			clearInterval(getAndSetClockIntervalHandler)
+		}
 	}, [])
 
 
@@ -224,6 +191,9 @@ export default function App() {
 					<Form form={mainForm} onFinish={handleMainFormSubmit}>
 						<Card title="Main Settings">
 							<div className='flex flex-col gap-4 items-start'>
+								<Form.Item name="numUnits" label="Number of Units">
+									<InputNumber min={0} max={128} />
+								</Form.Item>
 								<Form.Item name="mode" label="Device Mode">
 									<Radio.Group
 										options={['text', 'date', 'clock']}
@@ -245,9 +215,6 @@ export default function App() {
 										optionType='button'
 										buttonStyle='solid'
 									/>
-								</Form.Item>
-								<Form.Item name="numUnits" label="Number of Units">
-									<InputNumber min={0} max={128} />
 								</Form.Item>
 								<Form.Item name="text" label="Text" hidden={selectedMode !== 'text'} >
 									<Input
@@ -326,7 +293,44 @@ export default function App() {
 				</div>
 
 				<Card title="Unit Settings">
-					<div className='flex flex-row flex-wrap gap-6 items-center'>
+					<div className='flex flex-row flex-wrap gap-6 items-start'>
+						<Form>
+							<Form.Item label="Units Scan">
+								<Radio.Group
+									options={['stop', 'per second', 'per 10 seconds']}
+									optionType='button'
+									buttonStyle='solid'
+									value={unitsScan}
+									onChange={(e) => {
+										clearInterval(getAndSetUnitStatesIntervalHandler)
+										setGetAndSetUnitStatesIntervalHandler(undefined)
+										setUnitsScan(e.target.value)
+										switch (e.target.value) {
+											case 'stop':
+												break
+											case 'per second': {
+												const unitStatesHandeler = setInterval(async () => {
+													const newUnitStates = await getUnitStates()
+													setUnitStates(newUnitStates)
+												}, 1000)
+												setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
+												break
+											}
+											case 'per 10 seconds': {
+												const unitStatesHandeler10 = setInterval(async () => {
+													const newUnitStates = await getUnitStates()
+													setUnitStates(newUnitStates)
+												}, 10000)
+												setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler10)
+												break
+											}
+											default:
+												throw new Error('Invalid unitsScan value')
+										}
+									}}
+								/>
+							</Form.Item>
+						</Form>
 						<Table dataSource={unitStates.avrs}>
 							<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
 							<Table.Column title="Offset" dataIndex="offset" key="offset"
@@ -339,6 +343,11 @@ export default function App() {
 										min={0}
 										max={9999}
 										onChange={(value) => {
+											// Workaround to keep the editing data in the input field
+											setUnitsScan('stop')
+											clearInterval(getAndSetUnitStatesIntervalHandler)
+											setGetAndSetUnitStatesIntervalHandler(undefined)
+
 											setUnitStates((current) => ({
 												...current,
 												avrs: current.avrs.map((avr, i) => {
@@ -357,7 +366,15 @@ export default function App() {
 							/>
 							<Table.Column title="Update" key="update"
 								render={(_update, _record, index) => (
-									<Button type="primary" onClick={() => handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)}>Update</Button>
+									<Button type="primary" onClick={async () => {
+										await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
+										setUnitsScan('per second')
+										const unitStatesHandeler = setInterval(async () => {
+											const newUnitStates = await getUnitStates()
+											setUnitStates(newUnitStates)
+										}, 1000)
+										setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
+									}}>Update</Button>
 								)}
 							/>
 							<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
