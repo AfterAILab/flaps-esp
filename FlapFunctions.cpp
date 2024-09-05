@@ -29,10 +29,7 @@ int translateLettertoInt(char letterchar)
 void showNewData(String message)
 {
   Wire.flush();
-  if (getWrittenLast() != message)
-  {
-    showMessage(message, getRpm());
-  }
+  showMessage(message, getRpm());
   setWrittenLast(message);
 }
 
@@ -131,20 +128,20 @@ void showMessage(String message, int flapRpm)
   Serial.println(numUnits);
   for (int i = 0; i < numUnits; i++)
   {
-    char currentLetter = message[i];
-    int currentLetterPosition = translateLettertoInt(currentLetter);
+    char letter = message[i];
+    int letterPosition = translateLettertoInt(letter);
 #ifdef serial
     Serial.print("Unit No.: ");
     Serial.print(i);
     Serial.print(" Letter: ");
     Serial.print(message[i]);
     Serial.print(" Letter position: ");
-    Serial.println(currentLetterPosition);
+    Serial.println(letterPosition);
 #endif
     // only write to unit if char exists in letter array
-    if (currentLetterPosition != -1)
+    if (letterPosition != -1)
     {
-      writeToUnit(i, currentLetterPosition, flapRpm);
+      writeToUnit(i, letterPosition, flapRpm);
     }
   }
 }
