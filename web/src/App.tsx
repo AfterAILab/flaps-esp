@@ -174,6 +174,7 @@ export default function App() {
 	}
 
 	async function handleMiscFormSubmit(miscFormValues: MiscValues) {
+		console.log(`misc post. Input: ${stringify(miscFormValues)}`)
 		const response = await fetch('/misc', {
 			method: 'POST',
 			body: stringify(miscFormValues),
@@ -294,8 +295,8 @@ export default function App() {
 										showSearch
 										options={tzIdentifiers.map((value) => ({ value, label: value }))}
 									/>
-									<Typography.Text>Current Time: {clock.clock}</Typography.Text>
 								</Form.Item>
+								<Typography.Text>Current Time: {clock.clock}</Typography.Text>
 								<Form.Item className='self-center'>
 									<Button type="primary" htmlType="submit">Update</Button>
 								</Form.Item>
