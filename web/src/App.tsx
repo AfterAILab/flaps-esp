@@ -137,7 +137,7 @@ export default function App() {
 			// Learn more about this situation by reading the comment of `updateOffset` function in the server code.
 			const newUnitStates = await getUnitStates()
 			setUnitStates(newUnitStates)
-		}, 1024)
+		}, 1000)
 		if (response.ok) {
 			messageApi.success('Successfully updated the offset value')
 		} else {

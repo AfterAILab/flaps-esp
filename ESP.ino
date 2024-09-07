@@ -375,11 +375,11 @@ void loop()
   long currentMillis = millis();
 
   // Delay to not spam web requests
-  if (currentMillis - previousFlapMillis >= 1024)
+  if (currentMillis - previousFlapMillis >= 1000)
   {
     previousFlapMillis = currentMillis;
 
-    if (currentMillis >= 1024 * 3 && currentMillis < 1024 * 4)
+    if (currentMillis >= 1000 * 3 && currentMillis < 1000 * 4)
     {
       Serial.println("Set nextOperationMode to STA");
       prefs.begin(APP_NAME_SHORT, false);
