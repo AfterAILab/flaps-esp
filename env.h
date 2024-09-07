@@ -15,31 +15,19 @@
 #define BAUDRATE 115200
 #endif
 
+#define SDA_PIN 6
+#define SCL_PIN 7
+
 #define ANSWER_SIZE 3
-
-#ifndef MAX_NUM_UNITS
 #define MAX_NUM_UNITS 128
-#endif
-
-#ifndef NUM_FLAPS
 #define NUM_FLAPS 45
-#endif
 
-#ifndef COMMAND_UPDATE_OFFSET
 #define COMMAND_UPDATE_OFFSET 0
-#endif
-
-#ifndef COMMAND_SHOW_LETTER
 #define COMMAND_SHOW_LETTER 1
-#endif
 
-#ifndef OPERATION_MODE_AP
 #define OPERATION_MODE_AP 0
-#endif
-
-#ifndef OPERATION_MODE_STA
 #define OPERATION_MODE_STA 1
-#endif
+
 
 #ifndef DATE_FORMAT
 #define DATE_FORMAT "D.M.d"
@@ -54,11 +42,7 @@
 #define PARAM_MODE "mode"
 #define PARAM_NUM_UNITS "numUnits"
 #define PARAM_TEXT "text"
-
-#ifndef PARAM_OFFSET_UNIT_ADDR
 #define PARAM_OFFSET_UNIT_ADDR "unit"
-#endif
-
-#ifndef PARAM_OFFSET_OFFSET
 #define PARAM_OFFSET_OFFSET "offset"
-#endif
+#define PARAM_NUM_I2C_BUS_STUCK "numI2CBusStuck"
+#define PARAM_LAST_I2C_BUS_STUCK_AT_MILLIS "lastI2CBusStuckAtMillis"

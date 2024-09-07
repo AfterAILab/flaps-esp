@@ -92,10 +92,10 @@ void writeToUnit(int address, int letter, int flapRpm)
 void showMessage(String message, int flapRpm)
 {
   Serial.println("Entering showMessage function");
-  Serial.print("Message: ");
+  Serial.print("Original message: ");
   Serial.println(message);
   Serial.print("FlapRpm: ");
-  Serial.println(flapRpm);
+  Serial.print(flapRpm);
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -124,8 +124,10 @@ void showMessage(String message, int flapRpm)
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt(PARAM_NUM_UNITS);
   prefs.end();
-  Serial.print("Number of units: ");
-  Serial.println(numUnits);
+  Serial.print(" , number of units: ");
+  Serial.print(numUnits);
+  Serial.print(" , message on units: ");
+  Serial.println(message);
   for (int i = 0; i < numUnits; i++)
   {
     char letter = message[i];
@@ -179,7 +181,7 @@ void showClock()
 int checkIfMoving(int address)
 {
   char active;
-  Wire.requestFrom(address, ANSWER_SIZE, 1);
+  Wire.requestFrom(address, ANSWER_SIZE, true);
   active = Wire.read();
   Wire.flush();
 #ifdef serial
@@ -202,7 +204,13 @@ int checkIfMoving(int address)
 
 UnitState fetchUnitState(int unitAddr)
 {
-  Wire.requestFrom(unitAddr, ANSWER_SIZE, 1);
+  int bytesRead = Wire.requestFrom(unitAddr, ANSWER_SIZE, true);
+
+  if (bytesRead != ANSWER_SIZE)
+  {
+    Serial.printf("Failed to read from unit %d, bytesRead: %d\n", unitAddr, bytesRead);
+    return unitStates[unitAddr];
+  }
   // rotationRaw is, -1 = not connected, 0 = not rotating, 1 = rotating
   int rotatingRaw = Wire.read();
   unsigned long lastResponseAtMillis = rotatingRaw == -1 ? getUnitStates()[unitAddr].lastResponseAtMillis : millis();
@@ -215,7 +223,10 @@ UnitState fetchUnitState(int unitAddr)
 
 void fetchAndSetUnitStates()
 {
-  for (int i = 0; i < MAX_NUM_UNITS; i++)
+  prefs.begin(APP_NAME_SHORT, true);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  prefs.end();
+  for (int i = 0; i < numUnits; i++)
   {
     unitStates[i] = fetchUnitState(i);
   }

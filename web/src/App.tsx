@@ -3,7 +3,7 @@ import { Button, Card, Form, Input, InputNumber, message, Radio, Select, Table }
 import { tzIdentifiers } from './tzIdentifiers';
 import stringify from 'safe-stable-stringify';
 import { Typography } from 'antd';
-import { getVersionInfo, ipRegex } from './utils';
+import { convertMillisToConvenientString, getVersionInfo, ipRegex } from './utils';
 
 export default function App() {
 	const [messageApi, contextHolder] = message.useMessage();
@@ -278,6 +278,18 @@ export default function App() {
 									</Form.Item>
 									<Typography.Text>Current Time: {clock.clock}</Typography.Text>
 								</div>
+								<div className='flex flex-col items-start gap-1'>
+									<Form.Item name="numI2CBusStuck" label="Number of I2C Bus Stuck" className='!mb-0'>
+										<InputNumber variant='borderless' disabled />
+									</Form.Item>
+									<Form.Item name="lastI2CBusStuckAgoInMillis" label="Last I2C Bus Stuck (ago)">
+										<InputNumber
+											variant='borderless'
+											disabled
+											formatter={(value) => convertMillisToConvenientString(parseInt(`${value}`, 10))}
+										/>
+									</Form.Item>
+								</div>
 								<Form.Item className='self-center'>
 									<Button type="primary" htmlType="submit">Update</Button>
 								</Form.Item>
@@ -383,9 +395,9 @@ export default function App() {
 									<Radio checked={rotating} />
 								)}
 							/>
-							<Table.Column title="Last Response (ms ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
+							<Table.Column title="Last Response (ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
 								render={(lastResponseAtMillis) => (
-									<Typography.Text>{unitStates.esp.currentMillis - lastResponseAtMillis}</Typography.Text>
+									<Typography.Text>{convertMillisToConvenientString(unitStates.esp.currentMillis - lastResponseAtMillis)}</Typography.Text>
 								)}
 							/>
 						</Table>

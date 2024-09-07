@@ -18,6 +18,8 @@ type WifiValues = {
 
 type MiscValues = {
 	timezone: string
+	numI2CBusStuck: number
+	lastI2CBusStuckAgoInMillis: number
 }
 
 type OffsetValues = {

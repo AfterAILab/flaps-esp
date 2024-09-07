@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "WifiFunctions.h"
 #include "FlapFunctions.h"
+#include "I2C.h"
 
 bool offsetUpdateFlag = false;
 long previousFlapMillis = 0;
@@ -35,7 +36,7 @@ void setup()
   prefs.putInt("nextOperationMode", OPERATION_MODE_AP);
   prefs.end();
 
-  Wire.begin(6, 7);    // SDA, SCL pins
+  Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
   pinMode(10, OUTPUT); // Indicator LED pin
   digitalWrite(10, HIGH);
 
@@ -239,6 +240,9 @@ void setup()
       JSONVar j;
       prefs.begin(APP_NAME_SHORT, true);
       j["timezone"] = prefs.getString("timezone");
+      j[PARAM_NUM_I2C_BUS_STUCK] = getNumI2CBusStuck();
+      unsigned long maxUnsignedLong = 0xFFFFFFFF;
+      j["lastI2CBusStuckAgoInMillis"] = getLastI2CBusStuckAtMillis() == 0 ? 0 : (millis() - getLastI2CBusStuckAtMillis()) % maxUnsignedLong;
       prefs.end();
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
@@ -378,6 +382,11 @@ void loop()
   if (currentMillis - previousFlapMillis >= 1000)
   {
     previousFlapMillis = currentMillis;
+
+    if (isI2CBusStuck()) {
+      Serial.println("I2C bus is stuck, resetting");
+      recoverI2CBus();
+    }
 
     if (currentMillis >= 1000 * 3 && currentMillis < 1000 * 4)
     {
