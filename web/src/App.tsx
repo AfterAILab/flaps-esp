@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, message, Radio, Select, Table } from 'antd';
+import { Button, Card, Form, Input, InputNumber, message, Popover, Radio, Select, Table } from 'antd';
 import { tzIdentifiers } from './tzIdentifiers';
 import stringify from 'safe-stable-stringify';
 import { Typography } from 'antd';
-import { convertMillisToConvenientString, getVersionInfo, ipRegex } from './utils';
+import { convertMillisToConvenientString, getVersionInfo, ipRegex, offsetGuideTableColumns, offsetGuideTableData } from './utils';
 
 export default function App() {
 	const [messageApi, contextHolder] = message.useMessage();
@@ -345,15 +345,33 @@ export default function App() {
 						</Form>
 						<Table dataSource={unitStates.avrs}>
 							<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
-							<Table.Column title="Offset" dataIndex="offset" key="offset"
+							<Table.Column
+								title={
+									<span>
+										Offset
+										<Popover
+											placement='right'
+											trigger='click'
+											content={
+												<Table
+													size='small'
+													dataSource={offsetGuideTableData}
+													columns={offsetGuideTableColumns} />
+											}
+										>
+											<Button type="link" shape="circle" size="small">?</Button>
+										</Popover>
+									</span>}
+								dataIndex="offset" key="offset"
 								render={(offset, _record, index) => (
+									<span>
 									<InputNumber
 										className='max-w-20'
 										type="number"
 										name="offset"
 										value={offset}
 										min={0}
-										max={9999}
+										max={2038}
 										onChange={(value) => {
 											// Workaround to keep the editing data in the input field
 											setUnitsScan('stop')
@@ -374,10 +392,6 @@ export default function App() {
 											}))
 										}}
 									/>
-								)}
-							/>
-							<Table.Column title="Update" key="update"
-								render={(_update, _record, index) => (
 									<Button type="primary" onClick={async () => {
 										await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
 										setUnitsScan('per second')
@@ -388,6 +402,7 @@ export default function App() {
 										}, 1000)
 										setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
 									}}>Update</Button>
+									</span>
 								)}
 							/>
 							<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
