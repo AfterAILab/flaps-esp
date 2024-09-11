@@ -27,20 +27,12 @@ void setup()
 {
   // Serial port for debugging purposes
   Serial.begin(115200);
-#ifdef serial
-  Serial.println("setup");
-#endif
-  // Initialize NVS and determine operation mode
-  prefs.begin(APP_NAME_SHORT, false); // Opens in read/write mode in the nvs flash section
-  operationMode = prefs.getInt("nextOperationMode", OPERATION_MODE_STA);
-  prefs.putInt("nextOperationMode", OPERATION_MODE_AP);
-  prefs.end();
-
   Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
-  pinMode(10, OUTPUT); // Indicator LED pin
+  pinMode(MODE_PIN, INPUT); // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
+  pinMode(LED_PIN, OUTPUT); // Indicator LED pin
   digitalWrite(10, HIGH);
 
-  initWiFi(operationMode); // initializes WiFi
+  operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
   initFS();                // initializes filesystem
 #ifdef serial
   Serial.println("Loading main values");
@@ -388,12 +380,20 @@ void loop()
       recoverI2CBus();
     }
 
-    if (currentMillis >= 1000 * 3 && currentMillis < 1000 * 4)
+    // Check if the operation mode is changed
+    if (digitalRead(MODE_PIN) == LOW)
     {
-      Serial.println("Set nextOperationMode to STA");
-      prefs.begin(APP_NAME_SHORT, false);
-      prefs.putInt("nextOperationMode", OPERATION_MODE_STA);
-      prefs.end();
+      delay(1000);
+      if (digitalRead(MODE_PIN) == LOW)
+      {
+        // Wait for the button to be released before changing the operation mode
+        while (true) {
+          if (digitalRead(MODE_PIN) == HIGH) {
+            break;
+          }
+        }
+        operationMode = initWiFi(1-operationMode); // Toggle operation mode
+      }
     }
 
     fetchAndSetUnitStates();

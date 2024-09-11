@@ -7,6 +7,9 @@
 #endif
 */
 
+#define MODE_PIN 9 // Pin for boot mode as well as operation mode
+#define LED_PIN 10 // Pin for the LED
+
 #ifndef APP_NAME_SHORT
 #define APP_NAME_SHORT "AfterAI_Flaps"
 #endif
