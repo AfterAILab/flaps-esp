@@ -14,6 +14,7 @@
 #include "WifiFunctions.h"
 #include "FlapFunctions.h"
 #include "I2C.h"
+#include "morseCode.h"
 
 bool offsetUpdateFlag = false;
 long previousFlapMillis = 0;
@@ -30,7 +31,8 @@ void setup()
   Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
   pinMode(MODE_PIN, INPUT); // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
   pinMode(LED_PIN, OUTPUT); // Indicator LED pin
-  digitalWrite(10, HIGH);
+  // LED_PIN=HIGH means start of setup
+  digitalWrite(LED_PIN, HIGH);
 
   operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
   initFS();                // initializes filesystem
@@ -363,12 +365,32 @@ void setup()
     // Delay for the user to check the IP address on display
     delay(5000);
   }
+  // LED_PIN=LOW means end of setup
+  digitalWrite(LED_PIN, LOW);
 }
 
 void loop()
 {
   // Reset loop delay
   long currentMillis = millis();
+
+  // Check if the operation mode is changed
+  if (digitalRead(MODE_PIN) == LOW)
+  {
+    delay(1000);
+    if (digitalRead(MODE_PIN) == HIGH) {
+      Serial.println("Short press detected. Showing IP address in Morse code.");
+      flashMorseCode(WiFi.localIP().toString());
+    } else {
+      Serial.println("Long press detected. Operation mode will change on button release.");
+      while (true) {
+        if (digitalRead(MODE_PIN) == HIGH) {
+          break;
+        }
+      }
+      operationMode = initWiFi(1-operationMode); // Toggle operation mode
+    }
+  }
 
   // Delay to not spam web requests
   if (currentMillis - previousFlapMillis >= 1000)
@@ -378,22 +400,6 @@ void loop()
     if (isI2CBusStuck()) {
       Serial.println("I2C bus is stuck, resetting");
       recoverI2CBus();
-    }
-
-    // Check if the operation mode is changed
-    if (digitalRead(MODE_PIN) == LOW)
-    {
-      delay(1000);
-      if (digitalRead(MODE_PIN) == LOW)
-      {
-        // Wait for the button to be released before changing the operation mode
-        while (true) {
-          if (digitalRead(MODE_PIN) == HIGH) {
-            break;
-          }
-        }
-        operationMode = initWiFi(1-operationMode); // Toggle operation mode
-      }
     }
 
     fetchAndSetUnitStates();
