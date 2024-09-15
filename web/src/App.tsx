@@ -230,7 +230,7 @@ export default function App() {
 					</Form>
 
 					<Form form={wifiForm} onFinish={handleWifiFormSubmit}>
-						<Card title="WiFi Settings">
+						<Card title="Wi-Fi Settings">
 							<div className='flex flex-col gap-4 items-start'>
 								<Form.Item name="ssid" label="SSID">
 									<Input type="text" autoComplete="off" />
