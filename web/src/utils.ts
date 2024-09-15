@@ -1,6 +1,6 @@
 export function getVersionInfo() {
     return {
-        semanticVersion: "1.0.0-beta",
+        semanticVersion: "1.0.0",
     }
 }
 
