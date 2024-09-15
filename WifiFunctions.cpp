@@ -114,9 +114,9 @@ void loadMainValues()
   // Load values saved in NVS
   prefs.begin(APP_NAME_SHORT, true);
   alignment = prefs.getString(PARAM_ALIGNMENT, "left");
-  rpm = prefs.getInt(PARAM_RPM);
+  rpm = prefs.getInt(PARAM_RPM, 10);
   mode = prefs.getString(PARAM_MODE, "text");
-  numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
 }
 
