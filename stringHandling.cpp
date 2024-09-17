@@ -14,7 +14,7 @@ String centerString(String message)
 {
   // Takes care of the left side of the text (if any)
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
   if (message.length() > numUnits)
   {
@@ -47,7 +47,7 @@ String centerString(String message)
 String rightString(String message)
 {
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
   if (message.length() > numUnits)
   {
@@ -72,7 +72,7 @@ String rightString(String message)
 String leftString(String message)
 {
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
   if (message.length() > numUnits)
   {
