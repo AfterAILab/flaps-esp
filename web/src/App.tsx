@@ -276,7 +276,17 @@ export default function App() {
 											options={tzIdentifiers.map((value) => ({ value, label: value }))}
 										/>
 									</Form.Item>
-									<Typography.Text>Current Time: {clock.clock}</Typography.Text>
+									<Typography.Text>
+										Current Time
+										<Popover
+											placement='top'
+											trigger='click'
+											content={<span>Correct time is available if Leader is connected to the Internet.</span>}
+										>
+											<Button type="link" shape="circle" size="small">?</Button>
+										</Popover>
+										: {clock.clock}
+									</Typography.Text>
 								</div>
 								<div className='flex flex-col items-start gap-1'>
 									<Form.Item name="numI2CBusStuck" label="Number of I2C Bus Stuck" className='!mb-0'>
@@ -365,43 +375,43 @@ export default function App() {
 								dataIndex="offset" key="offset"
 								render={(offset, _record, index) => (
 									<span>
-									<InputNumber
-										className='max-w-20'
-										type="number"
-										name="offset"
-										value={offset}
-										min={0}
-										max={2038}
-										onChange={(value) => {
-											// Workaround to keep the editing data in the input field
-											setUnitsScan('stop')
-											clearInterval(getAndSetUnitStatesIntervalHandler)
-											setGetAndSetUnitStatesIntervalHandler(undefined)
+										<InputNumber
+											className='max-w-20'
+											type="number"
+											name="offset"
+											value={offset}
+											min={0}
+											max={2038}
+											onChange={(value) => {
+												// Workaround to keep the editing data in the input field
+												setUnitsScan('stop')
+												clearInterval(getAndSetUnitStatesIntervalHandler)
+												setGetAndSetUnitStatesIntervalHandler(undefined)
 
-											setUnitStates((current) => ({
-												...current,
-												avrs: current.avrs.map((avr, i) => {
-													if (i === index) {
-														return {
-															...avr,
-															offset: parseInt(value)
+												setUnitStates((current) => ({
+													...current,
+													avrs: current.avrs.map((avr, i) => {
+														if (i === index) {
+															return {
+																...avr,
+																offset: parseInt(value)
+															}
 														}
-													}
-													return avr
-												})
-											}))
-										}}
-									/>
-									<Button type="primary" onClick={async () => {
-										await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
-										setUnitsScan('per second')
-										clearInterval(getAndSetUnitStatesIntervalHandler)
-										const unitStatesHandeler = setInterval(async () => {
-											const newUnitStates = await getUnitStates()
-											setUnitStates(newUnitStates)
-										}, 1000)
-										setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
-									}}>Update</Button>
+														return avr
+													})
+												}))
+											}}
+										/>
+										<Button type="primary" onClick={async () => {
+											await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
+											setUnitsScan('per second')
+											clearInterval(getAndSetUnitStatesIntervalHandler)
+											const unitStatesHandeler = setInterval(async () => {
+												const newUnitStates = await getUnitStates()
+												setUnitStates(newUnitStates)
+											}, 1000)
+											setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
+										}}>Update</Button>
 									</span>
 								)}
 							/>
