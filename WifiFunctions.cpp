@@ -116,7 +116,7 @@ void loadMainValues()
   alignment = prefs.getString(PARAM_ALIGNMENT, "left");
   rpm = prefs.getInt(PARAM_RPM, 10);
   mode = prefs.getString(PARAM_MODE, "text");
-  numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
 }
 

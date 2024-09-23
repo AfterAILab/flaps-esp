@@ -28,14 +28,14 @@ void setup()
 {
   // Serial port for debugging purposes
   Serial.begin(115200);
-  Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
+  // Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
   pinMode(MODE_PIN, INPUT); // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
   pinMode(LED_PIN, OUTPUT); // Indicator LED pin
   // LED_PIN=HIGH means start of setup
   digitalWrite(LED_PIN, HIGH);
 
-  operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
-  initFS();                // initializes filesystem
+  operationMode = OPERATION_MODE_NO_WIFI;
+  initFS(); // initializes filesystem
 #ifdef serial
   Serial.println("Loading main values");
 #endif
@@ -47,33 +47,35 @@ void setup()
   // ezTime initialization
   if (operationMode == OPERATION_MODE_STA)
   {
-    waitForSync(10); // Wait for 10 seconds to sync time
+    waitForSync(100); // Wait for 100 seconds to sync time
     updateTimezone();
   }
 
-  // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+  if (operationMode != OPERATION_MODE_NO_WIFI)
+  {
+    // Web Server Root URL
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       debugF("Root URL\n");
      request->send(LittleFS, "/index.html", "text/html"); });
 
-  server.serveStatic("/", LittleFS, "/");
+    server.serveStatic("/", LittleFS, "/");
 
-  server.on("/meta", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/meta", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
     String chipId = getChipId();
     JSONVar j;
     j["chipId"] = chipId;
     String json = JSON.stringify(j);
     request->send(200, "application/json", json); });
 
-  server.on("/main", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/main", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       String json = getMainValues();
       request->send(200, "application/json", json); });
 
-  server.on("/main", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-            {
+    server.on("/main", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
         String jsonString = String((char*)data).substring(0, len);
         JSONVar jsonObj = JSON.parse(jsonString);
 
@@ -138,8 +140,8 @@ void setup()
         String jsonResponse = getMainValues();
         request->send(200, "application/json", jsonResponse); });
 
-  server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       JSONVar j;
       prefs.begin(APP_NAME_SHORT, true);
       j["ssid"] = prefs.getString("ssid");
@@ -153,8 +155,8 @@ void setup()
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
 
-  server.on("/wifi", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-            {
+    server.on("/wifi", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
         String jsonString = String((char*)data).substring(0, len);
         JSONVar jsonObj = JSON.parse(jsonString);
 
@@ -229,8 +231,8 @@ void setup()
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
 
-  server.on("/misc", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/misc", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       JSONVar j;
       prefs.begin(APP_NAME_SHORT, true);
       j["timezone"] = prefs.getString("timezone");
@@ -241,8 +243,8 @@ void setup()
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
 
-  server.on("/misc", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-            {
+    server.on("/misc", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
         String jsonString = String((char*)data).substring(0, len);
         JSONVar jsonObj = JSON.parse(jsonString);
 
@@ -268,22 +270,22 @@ void setup()
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
 
-  server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/clock", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       String clock = getClockString();
       JSONVar j;
       j["clock"] = clock;
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
 
-  server.on("/offset", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/offset", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
       // Return all the offsets in JSON format
       String json = getOffsetsInString();
       request->send(200, "application/json", json); });
 
-  server.on("/offset", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-            {
+    server.on("/offset", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
         String jsonString = String((char*)data).substring(0, len);
         JSONVar jsonObj = JSON.parse(jsonString);
 
@@ -319,8 +321,8 @@ void setup()
         String jsonResponse = getOffsetsInString();
         request->send(200, "application/json", jsonResponse); });
 
-  server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+    server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
     updateUnitStatesStringCache();
     // Return all the unit states in JSON format
     // Responding with chunks is necessary to send large data with AsyncWebServer
@@ -347,16 +349,17 @@ void setup()
     });
     request -> send(response); });
 
-  server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-            {
+    server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
       Serial.println("Restarting...");
       request->send(200);
       delay(1000);
       ESP.restart(); });
 
-  Serial.println("HTTP server starting");
-  server.begin();
-  Serial.println("HTTP server started");
+    Serial.println("HTTP server starting");
+    server.begin();
+    Serial.println("HTTP server started");
+  }
   fetchAndSetUnitStates();
   if (operationMode == OPERATION_MODE_STA)
   {
@@ -375,20 +378,28 @@ void loop()
   long currentMillis = millis();
 
   // Check if the operation mode is changed
-  if (digitalRead(MODE_PIN) == LOW)
+  if (operationMode != OPERATION_MODE_NO_WIFI)
   {
-    delay(1000);
-    if (digitalRead(MODE_PIN) == HIGH) {
-      Serial.println("Short press detected. Showing IP address in Morse code.");
-      flashMorseCode(WiFi.localIP().toString());
-    } else {
-      Serial.println("Long press detected. Operation mode will change on button release.");
-      while (true) {
-        if (digitalRead(MODE_PIN) == HIGH) {
-          break;
-        }
+    if (digitalRead(MODE_PIN) == LOW)
+    {
+      delay(1000);
+      if (digitalRead(MODE_PIN) == HIGH)
+      {
+        Serial.println("Short press detected. Showing IP address in Morse code.");
+        flashMorseCode(WiFi.localIP().toString());
       }
-      operationMode = initWiFi(1-operationMode); // Toggle operation mode
+      else
+      {
+        Serial.println("Long press detected. Operation mode will change on button release.");
+        while (true)
+        {
+          if (digitalRead(MODE_PIN) == HIGH)
+          {
+            break;
+          }
+        }
+        operationMode = initWiFi(1 - operationMode); // Toggle operation mode
+      }
     }
   }
 
@@ -397,7 +408,8 @@ void loop()
   {
     previousFlapMillis = currentMillis;
 
-    if (isI2CBusStuck()) {
+    if (isI2CBusStuck())
+    {
       Serial.println("I2C bus is stuck, resetting");
       recoverI2CBus();
     }
@@ -440,10 +452,15 @@ void loop()
                     alignment.c_str(),
                     rpm);
     }
+    // Show offset values
+    String offsetString = getOffsetsInString();
+    Serial.print("Offsets: ");
+    Serial.println(offsetString);
+
     if (mode == "text")
     {
-      Serial.print(", Text: ");
-      Serial.print(getText());
+      Serial.print("Text: ");
+      Serial.println(getText());
       showNewData(getText());
     }
     if (mode == "date")
@@ -455,5 +472,36 @@ void loop()
       showClock();
     }
     Serial.println();
+    if (Serial.available())
+    {                                              // Check if data is available to read
+      String input = Serial.readStringUntil('\n'); // Read input until newline character
+      Serial.print("Received: ");
+      Serial.println(input); // Echo received input back to serial monitor
+      // If argumnent is of form mode
+      if (input.startsWith("mode")) {
+        if (input.endsWith("text")) {
+          writeThroughMode("text");
+        } else if (input.endsWith("date")) {
+          writeThroughMode("date");
+        } else if (input.endsWith("clock")) {
+          writeThroughMode("clock");
+        }
+      }
+      // If input is of form set unit_id offset_value, update the offset of the unit
+      // Note that the lengths of unit_id and offset_value are unknown
+      if (input.startsWith("set"))
+      {
+        int unitAddr = -1;
+        int offset = -1;
+        sscanf(input.c_str(), "set %d %d", &unitAddr, &offset);
+        if (unitAddr != -1 && offset != -1)
+        {
+          setOffsetUpdateUnitAddr(unitAddr);
+          setOffsetUpdateOffset(offset);
+          offsetUpdateFlag = true;
+        }
+      }
+      setText(input);
+    }
   }
 }

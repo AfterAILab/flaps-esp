@@ -122,7 +122,7 @@ void showMessage(String message, int flapRpm)
   }
 
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  int numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
   Serial.print(" , number of units: ");
   Serial.print(numUnits);
@@ -224,7 +224,7 @@ UnitState fetchUnitState(int unitAddr)
 void fetchAndSetUnitStates()
 {
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  int numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {
@@ -240,7 +240,7 @@ void updateUnitStatesStringCache()
   JSONVar j;
   UnitState *unitStates = getUnitStates();
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  int numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
   if (numUnits <= 0)
   {
@@ -278,7 +278,7 @@ String getOffsetsInString()
 {
   String offsetString = "[";
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  int numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {
@@ -297,7 +297,7 @@ bool isDisplayMoving()
 {
   // Request all units moving state and write to array
   prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  int numUnits = PARAM_NUM_UNITS_DEFAULT_VALUE;
   prefs.end();
   for (int i = 0; i < numUnits; i++)
   {
