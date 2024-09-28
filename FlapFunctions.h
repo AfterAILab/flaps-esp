@@ -8,6 +8,7 @@ struct UnitState {
     int unitAddr;
     bool rotating;
     int offset;
+    int magneticZeroPositionLetterIndex;
     unsigned long lastResponseAtMillis; // millis() when the last response was received. Wraps around every 49 days.
 };
 
@@ -18,14 +19,13 @@ void showDate();
 void showClock();
 void updateTimezone();
 void showMessage(String message, int flapRpm);
-bool isDisplayMoving();
 UnitState fetchUnitState(int unitAddr);
+void setUnitStates(UnitState *states);
 void fetchAndSetUnitStates();
-UnitState* getUnitStates();
 String getUnitStatesStringCache();
 void updateUnitStatesStringCache();
 String getOffsetsInString();
-void updateOffset(bool force);
+void commitStagedUnitStates();
 String leftString(String message);
 String rightString(String message);
 String centerString(String message);

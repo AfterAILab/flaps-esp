@@ -14,8 +14,7 @@ int rpm;
 String mode;
 int numUnits;
 String text;
-int offsetUpdateUnitAddr = -1;
-int offsetUpdateOffset = -1;
+UnitState unitStatesStaged[MAX_NUM_UNITS];
 
 void writeThroughAlignment(String message)
 {
@@ -54,14 +53,12 @@ void setText(String message)
   text = message;
 }
 
-void setOffsetUpdateUnitAddr(int unitAddr)
+void setUnitStatesStaged(UnitState *unitStates)
 {
-  offsetUpdateUnitAddr = unitAddr;
-}
-
-void setOffsetUpdateOffset(int offset)
-{
-  offsetUpdateOffset = offset;
+  for (int i = 0; i < MAX_NUM_UNITS; i++)
+  {
+    unitStatesStaged[i] = unitStates[i];
+  }
 }
 
 String getAlignment()
@@ -99,14 +96,9 @@ void setWrittenLast(String message)
   writtenLast = message;
 }
 
-int getOffsetUpdateUnitAddr()
+UnitState *getUnitStatesStaged()
 {
-  return offsetUpdateUnitAddr;
-}
-
-int getOffsetUpdateOffset()
-{
-  return offsetUpdateOffset;
+  return unitStatesStaged;
 }
 
 void loadMainValues()

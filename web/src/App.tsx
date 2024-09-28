@@ -54,6 +54,7 @@ export default function App() {
 				avrs: []
 			}
 		}
+		console.log(`getUnitStates: ${stringify(data)}`)
 		return data
 	}
 	async function getRegisteredMiscValues() {
@@ -126,10 +127,10 @@ export default function App() {
 		}
 	}
 
-	async function handleOffsetFormSubmit(offsetFormValues: OffsetValues) {
-		const response = await fetch('/offset', {
+	async function handleUnitFormSubmit() {
+		const response = await fetch('/unit', {
 			method: 'POST',
-			body: stringify(offsetFormValues),
+			body: stringify(unitStates.avrs),
 		});
 		setTimeout(async () => {
 			// We need to wait a bit before updating the offsets
@@ -143,10 +144,6 @@ export default function App() {
 		} else {
 			messageApi.error('Failed to update the offset value')
 		}
-	}
-
-	const handleOffsetFormSubmitForUnit = (unit: number) => async (offset: number) => {
-		await handleOffsetFormSubmit({ unit, offset })
 	}
 
 	async function handleMiscFormSubmit(miscFormValues: MiscValues) {
@@ -210,11 +207,7 @@ export default function App() {
 									/>
 								</Form.Item>
 								<Form.Item name="rpm" label="RPM">
-									<Radio.Group
-										options={[8, 9, 10, 11, 12]}
-										optionType='button'
-										buttonStyle='solid'
-									/>
+									<InputNumber min={1} max={12} />
 								</Form.Item>
 								<Form.Item name="text" label="Text" hidden={selectedMode !== 'text'} >
 									<Input
@@ -310,6 +303,23 @@ export default function App() {
 					<Card title="Operations">
 						<div className='flex flex-col gap-4 items-center'>
 							<Button type="primary" onClick={handleRestart}>Restart</Button>
+							<Button type="primary" onClick={async () => {
+								for (const l of `AfterAI 2024`.split('')) {
+									// create an array of length
+									const text = Array(mainForm.getFieldValue('numUnits')).fill(l).join('')
+									mainForm.setFieldsValue({
+										mode: 'text',
+										text
+									})
+									setSelectedMode('text')
+									await handleMainFormSubmit({
+										...mainForm.getFieldsValue(true),
+										text,
+										mode: 'text'
+									})
+									await new Promise((resolve) => setTimeout(resolve, 5000))
+								}
+							}}>Text Tour</Button>
 						</div>
 					</Card>
 				</div>
@@ -353,28 +363,76 @@ export default function App() {
 								/>
 							</Form.Item>
 						</Form>
-						<Table dataSource={unitStates.avrs}>
-							<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
-							<Table.Column
-								title={
-									<span>
-										Offset
-										<Popover
-											placement='right'
-											trigger='click'
-											content={
-												<Table
-													size='small'
-													dataSource={offsetGuideTableData}
-													columns={offsetGuideTableColumns} />
-											}
-										>
-											<Button type="link" shape="circle" size="small">?</Button>
-										</Popover>
-									</span>}
-								dataIndex="offset" key="offset"
-								render={(offset, _record, index) => (
-									<span>
+						<Form>
+							<Button type="primary" onClick={async () => {
+								await handleUnitFormSubmit()
+								setUnitsScan('per second')
+								clearInterval(getAndSetUnitStatesIntervalHandler)
+								const unitStatesHandeler = setInterval(async () => {
+									const newUnitStates = await getUnitStates()
+									setUnitStates(newUnitStates)
+								}, 1000)
+								setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
+							}}>Update</Button>
+							<Table dataSource={unitStates.avrs}>
+								<Table.Column title="Unit" dataIndex="unitAddr" key="unitAddr" />
+								<Table.Column
+									title="Magnetic Zero Position Letter"
+									dataIndex="magneticZeroPositionLetterIndex"
+									key="magneticZeroPositionLetterIndex"
+									render={(magneticZeroPositionLetterIndex, _record, index) => {
+										return (
+											<Select
+												className='w-24'
+												options={
+													offsetGuideTableData.map(({ key, zeroOffsetStoppingCharacter }) => ({
+														value: parseInt(key),
+														label: zeroOffsetStoppingCharacter
+													}))}
+												value={magneticZeroPositionLetterIndex}
+												onChange={(value) => {
+													// Workaround to keep the editing data in the input field
+													setUnitsScan('stop')
+													clearInterval(getAndSetUnitStatesIntervalHandler)
+													setGetAndSetUnitStatesIntervalHandler(undefined)
+													const suggestedOffset = offsetGuideTableData.find(({ key }) => key === `${value}`)?.suggestedOffset ?? '0'
+
+													setUnitStates((current) => ({
+														...current,
+														avrs: current.avrs.map((avr, i) => {
+															if (i === index) {
+																return {
+																	...avr,
+																	offset: parseInt(suggestedOffset),
+																	magneticZeroPositionLetterIndex: value
+																}
+															}
+															return avr
+														})
+													}))
+												}}
+											/>)
+									}}
+								/>
+								<Table.Column
+									title={
+										<span>
+											Offset
+											<Popover
+												placement='right'
+												trigger='click'
+												content={
+													<Table
+														size='small'
+														dataSource={offsetGuideTableData}
+														columns={offsetGuideTableColumns} />
+												}
+											>
+												<Button type="link" shape="circle" size="small">?</Button>
+											</Popover>
+										</span>}
+									dataIndex="offset" key="offset"
+									render={(offset, _record, index) => (
 										<InputNumber
 											className='max-w-20'
 											type="number"
@@ -402,30 +460,20 @@ export default function App() {
 												}))
 											}}
 										/>
-										<Button type="primary" onClick={async () => {
-											await handleOffsetFormSubmitForUnit(index)(unitStates.avrs[index].offset)
-											setUnitsScan('per second')
-											clearInterval(getAndSetUnitStatesIntervalHandler)
-											const unitStatesHandeler = setInterval(async () => {
-												const newUnitStates = await getUnitStates()
-												setUnitStates(newUnitStates)
-											}, 1000)
-											setGetAndSetUnitStatesIntervalHandler(unitStatesHandeler)
-										}}>Update</Button>
-									</span>
-								)}
-							/>
-							<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
-								render={(rotating) => (
-									<Radio checked={rotating} />
-								)}
-							/>
-							<Table.Column title="Last Response (ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
-								render={(lastResponseAtMillis) => (
-									<Typography.Text>{convertMillisToConvenientString(unitStates.esp.currentMillis - lastResponseAtMillis)}</Typography.Text>
-								)}
-							/>
-						</Table>
+									)}
+								/>
+								<Table.Column title="Rotating" dataIndex="rotating" key="rotating"
+									render={(rotating) => (
+										<Radio checked={rotating} />
+									)}
+								/>
+								<Table.Column title="Last Response (ago)" dataIndex="lastResponseAtMillis" key="lastResponseAtMillis"
+									render={(lastResponseAtMillis) => (
+										<Typography.Text>{convertMillisToConvenientString(unitStates.esp.currentMillis - lastResponseAtMillis)}</Typography.Text>
+									)}
+								/>
+							</Table>
+						</Form>
 					</div>
 				</Card>
 			</div>

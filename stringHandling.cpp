@@ -26,14 +26,12 @@ String centerString(String message)
     int leftSpaceAmount = (numUnits - (int)message.length()) / 2;
     for (int i = 0; i < leftSpaceAmount; i++)
     {
-      Serial.printf("The first for loop is running. i=%d, leftSpaceAmount=%d, numUnits=%d, message.length=%d\n", i, leftSpaceAmount, numUnits, message.length());
       message = " " + message;
     }
 
     // Take care of the right side of the text (if any)
     for (int i = message.length(); i < numUnits; i++)
     {
-      Serial.printf("The second for loop is running. i=%d, numUnits=%d\n", i, numUnits);
       message = message + " ";
     }
   }

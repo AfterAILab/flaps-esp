@@ -9,6 +9,7 @@ type MainValues = {
 	rpm: number
 	numUnits: number
 	mode: string
+	text: string
 }
 
 type WifiValues = {
@@ -22,13 +23,15 @@ type MiscValues = {
 	lastI2CBusStuckAgoInMillis: number
 }
 
-type OffsetValues = {
-	unit: number
+type UnitValues = {
+	unitAddr: number
+	magneticZeroPositionLetterIndex: number
 	offset: number
 }
 
 type AvrState = {
 	unitAddr: number
+	magneticZeroPositionLetterIndex: number
 	offset: number
 	rotating: boolean
 	lastResponseAtMillis: number

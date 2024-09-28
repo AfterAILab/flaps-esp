@@ -21,7 +21,7 @@
 #define SDA_PIN 6
 #define SCL_PIN 7
 
-#define ANSWER_SIZE 3
+#define ANSWER_SIZE 4
 #define MAX_NUM_UNITS 128
 #define NUM_FLAPS 45
 
@@ -37,7 +37,7 @@
 #endif
 
 #ifndef CLOCK_FORMAT
-#define CLOCK_FORMAT "Y-m-d H:i"
+#define CLOCK_FORMAT "H:i"
 #endif
 
 #define PARAM_ALIGNMENT "alignment"
@@ -45,8 +45,9 @@
 #define PARAM_MODE "mode"
 #define PARAM_NUM_UNITS "numUnits"
 #define PARAM_TEXT "text"
-#define PARAM_OFFSET_UNIT_ADDR "unit"
+#define PARAM_OFFSET_UNIT_ADDR "unitAddr"
 #define PARAM_OFFSET_OFFSET "offset"
+#define PARAM_MAGNETIC_ZERO_POSITION_LETTER_INDEX "magneticZeroPositionLetterIndex"
 #define PARAM_NUM_I2C_BUS_STUCK "numI2CBusStuck"
 #define PARAM_LAST_I2C_BUS_STUCK_AT_MILLIS "lastI2CBusStuckAtMillis"
 

@@ -16,7 +16,7 @@
 #include "I2C.h"
 #include "morseCode.h"
 
-bool offsetUpdateFlag = false;
+bool unitUpdateFlag = false;
 long previousFlapMillis = 0;
 
 // Create AsyncWebServer object on port 80
@@ -28,14 +28,15 @@ void setup()
 {
   // Serial port for debugging purposes
   Serial.begin(115200);
-  Wire.begin(SDA_PIN, SCL_PIN);    // SDA, SCL pins
-  pinMode(MODE_PIN, INPUT); // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
-  pinMode(LED_PIN, OUTPUT); // Indicator LED pin
+  Serial.println("===== AfterAI Flaps ESP 1.1.0 =====");
+  Wire.begin(SDA_PIN, SCL_PIN); // SDA, SCL pins
+  pinMode(MODE_PIN, INPUT);     // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
+  pinMode(LED_PIN, OUTPUT);     // Indicator LED pin
   // LED_PIN=HIGH means start of setup
   digitalWrite(LED_PIN, HIGH);
 
   operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
-  initFS();                // initializes filesystem
+  initFS();                                     // initializes filesystem
 #ifdef serial
   Serial.println("Loading main values");
 #endif
@@ -282,10 +283,11 @@ void setup()
       String json = getOffsetsInString();
       request->send(200, "application/json", json); });
 
-  server.on("/offset", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+  server.on("/unit", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
         String jsonString = String((char*)data).substring(0, len);
         JSONVar jsonObj = JSON.parse(jsonString);
+        UnitState *unitStates = getUnitStatesStaged();
 
         if (JSON.typeof(jsonObj) == "undefined") {
             Serial.println("Parsing input failed!");
@@ -293,31 +295,64 @@ void setup()
             return;
         }
 
-        int unitAddr = -1;
-        int offset = -1;
+        Serial.printf("Unit update request jsonString: %s\n", jsonString.c_str());
 
-        if (jsonObj.hasOwnProperty(PARAM_OFFSET_UNIT_ADDR)) {
-            unitAddr = (int)jsonObj[PARAM_OFFSET_UNIT_ADDR];
+        for(int i = 0; i < jsonObj.length(); i++) {
+          JSONVar unit = jsonObj[i];
+          int unitAddr = -1;
+          int offset = -1;
+          int magneticZeroPositionLetterIndex = -1;
+
+          if (unit.hasOwnProperty(PARAM_OFFSET_UNIT_ADDR)) {
+              unitAddr = (int)unit[PARAM_OFFSET_UNIT_ADDR];
+          }
+
+          if (unit.hasOwnProperty(PARAM_OFFSET_OFFSET)) {
+              offset = (int)unit[PARAM_OFFSET_OFFSET];
+          }
+
+          if (unit.hasOwnProperty(PARAM_MAGNETIC_ZERO_POSITION_LETTER_INDEX)) {
+              magneticZeroPositionLetterIndex = (int)unit[PARAM_MAGNETIC_ZERO_POSITION_LETTER_INDEX];
+          }
+
+          if (unitAddr != -1 && offset != -1 && magneticZeroPositionLetterIndex != -1) {
+              unitStates[unitAddr].unitAddr = unitAddr;
+              unitStates[unitAddr].offset = offset;
+              unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
+          } else {
+              Serial.println("Invalid unit address, offset or magneticZeroPositionLetterIndex");
+              Serial.print("Unit address: ");
+              Serial.println(unitAddr);
+              Serial.print("Offset: ");
+              Serial.print(offset);
+              Serial.print("Magnetic zero position letter index: ");
+              Serial.println(magneticZeroPositionLetterIndex);
+          }
         }
+        unitUpdateFlag = true;
+        setUnitStates(unitStates);
+        updateUnitStatesStringCache();
 
-        if (jsonObj.hasOwnProperty(PARAM_OFFSET_OFFSET)) {
-            offset = (int)jsonObj[PARAM_OFFSET_OFFSET];
-        }
-
-        if (unitAddr != -1 && offset != -1) {
-            setOffsetUpdateUnitAddr(unitAddr);
-            setOffsetUpdateOffset(offset);
-            offsetUpdateFlag = true;
-        } else {
-            Serial.println("Invalid offset or unit address");
-            Serial.print("Unit address: ");
-            Serial.println(unitAddr);
-            Serial.print("Offset: ");
-            Serial.println(offset);
-        }
-
-        String jsonResponse = getOffsetsInString();
-        request->send(200, "application/json", jsonResponse); });
+        AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
+                                          [](uint8_t* buffer, size_t maxLen, size_t index)
+        {
+          String jsonStringCache = getUnitStatesStringCache();
+          const char* jsonCChar = jsonStringCache.c_str();
+          if (strlen(jsonCChar) <= index)
+          {
+            return 0;
+          }
+          if (jsonCChar == NULL)
+          {
+            return 0;
+          }
+          // Copy the next chunk of the data (json) to the buffer. Return the length copied.
+          size_t remainingLen = strlen(jsonCChar + index);
+          int toCopy = maxLen > remainingLen ? remainingLen : maxLen;
+          memcpy(buffer, jsonCChar + index, toCopy);
+          return toCopy;
+        });
+        request -> send(response); });
 
   server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -378,17 +413,22 @@ void loop()
   if (digitalRead(MODE_PIN) == LOW)
   {
     delay(1000);
-    if (digitalRead(MODE_PIN) == HIGH) {
+    if (digitalRead(MODE_PIN) == HIGH)
+    {
       Serial.println("Short press detected. Showing IP address in Morse code.");
       flashMorseCode(WiFi.localIP().toString());
-    } else {
+    }
+    else
+    {
       Serial.println("Long press detected. Operation mode will change on button release.");
-      while (true) {
-        if (digitalRead(MODE_PIN) == HIGH) {
+      while (true)
+      {
+        if (digitalRead(MODE_PIN) == HIGH)
+        {
           break;
         }
       }
-      operationMode = initWiFi(1-operationMode); // Toggle operation mode
+      operationMode = initWiFi(1 - operationMode); // Toggle operation mode
     }
   }
 
@@ -397,9 +437,11 @@ void loop()
   {
     previousFlapMillis = currentMillis;
 
-    if (isI2CBusStuck()) {
-      Serial.println("I2C bus is stuck, resetting");
-      recoverI2CBus();
+    if (isI2CBusStuck())
+    {
+      Serial.println("I2C bus is stuck, recovering");
+      bool isRecovered = recoverI2CBus();
+      Serial.printf("Is I2C bus recover success: %s\n", isRecovered ? "true" : "false");
     }
 
     fetchAndSetUnitStates();
@@ -409,13 +451,14 @@ void loop()
       events(); // ezTime library function.
     }
 
-    if (offsetUpdateFlag)
+    if (unitUpdateFlag)
     {
-      offsetUpdateFlag = false;
+      unitUpdateFlag = false;
       // Make sure that the display is on the home position
       writeThroughMode("text");
       setText(" ");
-      updateOffset(false);
+      commitStagedUnitStates();
+      fetchAndSetUnitStates();
     }
 
     // Mode Selection
@@ -443,7 +486,7 @@ void loop()
     if (mode == "text")
     {
       Serial.print(", Text: ");
-      Serial.print(getText());
+      Serial.println(getText());
       showNewData(getText());
     }
     if (mode == "date")

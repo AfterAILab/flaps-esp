@@ -20,27 +20,27 @@ bool isI2CBusStuck() {
 
 int numI2CBusStuck = 0;
 unsigned long lastI2CBusStuckAtMillis = 0;
+int clockUs = 8;
 
 bool recoverI2CBus() {
   Wire.end();
-  pinMode(SDA_PIN, INPUT_PULLUP);
+  pinMode(SDA_PIN, OUTPUT);
   pinMode(SCL_PIN, OUTPUT);
   delay(5);
 
   // Generate 9 clock pulses to release the SDA line
   for (int i = 0; i < 9; i++) {
     digitalWrite(SCL_PIN, HIGH);
-    delayMicroseconds(5);
+    delayMicroseconds(clockUs);
     digitalWrite(SCL_PIN, LOW);
-    delayMicroseconds(5);
+    delayMicroseconds(clockUs);
   }
 
   // Generate a STOP condition
-  pinMode(SDA_PIN, OUTPUT);
   digitalWrite(SDA_PIN, LOW);
-  delayMicroseconds(5);
+  delayMicroseconds(clockUs);
   digitalWrite(SCL_PIN, HIGH);
-  delayMicroseconds(5);
+  delayMicroseconds(clockUs);
   digitalWrite(SDA_PIN, HIGH);
 
   // Reinitialize the I2C bus

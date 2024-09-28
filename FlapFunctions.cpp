@@ -28,45 +28,45 @@ int translateLettertoInt(char letterchar)
 // checks for new message to show
 void showNewData(String message)
 {
-  Wire.flush();
   showMessage(message, getRpm());
   setWrittenLast(message);
 }
 
-// Updates offset of single unit
-// The new offset `offset` oversedes the current offset of the unit at `address`
 // This function is not called directly from the /offset POST handler, but from inside the main loop
 // It is due to the fact that the /offset POST handler cannot afford the time of calling Wire.beginTransmission() and Wire.endTransmission()
-void updateOffset(bool force)
+void commitStagedUnitStates()
 {
-  int address = getOffsetUpdateUnitAddr();
-  int offset = getOffsetUpdateOffset();
+  UnitState *stagedUnitStates = getUnitStatesStaged();
 
-  int currentOffset = unitStates[address].offset;
+  prefs.begin(APP_NAME_SHORT, true);
+  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
+  prefs.end();
 
-  if (!force && currentOffset == offset)
+  for (int i = 0; i < numUnits; i++)
   {
-    Serial.printf("Offset at %d is already set to the desired value %d, no need to update\n", address, offset);
-    return;
+    int address = stagedUnitStates[i].unitAddr;
+    int offset = stagedUnitStates[i].offset;
+    int magneticZeroPositionLetterUpdateIndex = stagedUnitStates[i].magneticZeroPositionLetterIndex;
+
+    Serial.printf("Updating unit %d\n", address);
+    Wire.beginTransmission(address);
+    Wire.write(COMMAND_UPDATE_OFFSET);
+    // Decompose offset into two bytes
+    int offsetMSB = (offset >> 8) & 0xFF;
+    int offsetLSB = offset & 0xFF;
+    Serial.printf("Offset MSB: %d, LSB: %d\n", offsetMSB, offsetLSB);
+    Wire.write(offsetMSB);
+    Serial.printf("Offset MSB written\n");
+    Wire.write(offsetLSB);
+    Serial.printf("Offset LSB written\n");
+    Wire.write(magneticZeroPositionLetterUpdateIndex);
+    Serial.printf("MagneticZeroPositionLetterIndex written: %d\n", magneticZeroPositionLetterUpdateIndex);
+    int retEndTransmission = Wire.endTransmission();
+    Serial.printf("EndTransmission returned: %d\n", retEndTransmission);
   }
-  Serial.printf("Updating offset at %d is currently %d, updating to %d\n", address, currentOffset, offset);
-  Wire.beginTransmission(address);
-  Wire.write(COMMAND_UPDATE_OFFSET);
-  // Decompose offset into two bytes
-  int offsetMSB = (offset >> 8) & 0xFF;
-  int offsetLSB = offset & 0xFF;
-  Serial.printf("Offset MSB: %d, LSB: %d\n", offsetMSB, offsetLSB);
-  Wire.write(offsetMSB);
-  Serial.printf("Offset MSB written\n");
-  Wire.write(offsetLSB);
-  Serial.printf("Offset LSB written\n");
-  int retEndTransmission = Wire.endTransmission();
-  Serial.printf("EndTransmission returned: %d\n", retEndTransmission);
-  // Update offset in local array for the browser to see the change immediately
-  unitStates[address] = fetchUnitState(address);
 }
 
-// write letter position and rpm in rpm to single unit
+// write letter position and rpm to single unit
 void writeToUnit(int address, int letter, int flapRpm)
 {
   int sendArray[2] = {letter, flapRpm}; // Array with values to send to unit
@@ -95,7 +95,7 @@ void showMessage(String message, int flapRpm)
   Serial.print("Original message: ");
   Serial.println(message);
   Serial.print("FlapRpm: ");
-  Serial.print(flapRpm);
+  Serial.println(flapRpm);
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -110,15 +110,6 @@ void showMessage(String message, int flapRpm)
   else if (alignment == "center")
   {
     message = centerString(message);
-  }
-
-  // wait while display is still moving
-  while (isDisplayMoving())
-  {
-#ifdef serial
-    Serial.println("wait for display to stop");
-#endif
-    delay(500);
   }
 
   prefs.begin(APP_NAME_SHORT, true);
@@ -183,7 +174,6 @@ int checkIfMoving(int address)
   char active;
   Wire.requestFrom(address, ANSWER_SIZE, true);
   active = Wire.read();
-  Wire.flush();
 #ifdef serial
   Serial.print(address);
   Serial.print(":");
@@ -213,12 +203,13 @@ UnitState fetchUnitState(int unitAddr)
   }
   // rotationRaw is, -1 = not connected, 0 = not rotating, 1 = rotating
   int rotatingRaw = Wire.read();
-  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? getUnitStates()[unitAddr].lastResponseAtMillis : millis();
+  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? unitStates[unitAddr].lastResponseAtMillis : millis();
   bool rotating = rotatingRaw == 1;
   int offsetMSB = Wire.read();
   int offsetLSB = Wire.read();
   int offset = (offsetMSB << 8) | offsetLSB;
-  return UnitState{unitAddr, rotating, offset, lastResponseAtMillis};
+  int magneticZeroPositionLetterIndex = Wire.read();
+  return UnitState{unitAddr, rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
 }
 
 void fetchAndSetUnitStates()
@@ -232,13 +223,20 @@ void fetchAndSetUnitStates()
   }
 }
 
+void setUnitStates(UnitState *states)
+{
+  for (int i = 0; i < MAX_NUM_UNITS; i++)
+  {
+    unitStates[i] = states[i];
+  }
+}
+
 String unitStatesStringCache = "";
 const char emptyArray[] = "[]";
 
 void updateUnitStatesStringCache()
 {
   JSONVar j;
-  UnitState *unitStates = getUnitStates();
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
@@ -254,6 +252,7 @@ void updateUnitStatesStringCache()
       UnitState unitState = unitStates[i];
       j["avrs"][i]["unitAddr"] = unitState.unitAddr;
       j["avrs"][i]["rotating"] = unitState.rotating;
+      j["avrs"][i]["magneticZeroPositionLetterIndex"] = unitState.magneticZeroPositionLetterIndex;
       j["avrs"][i]["offset"] = unitState.offset;
       j["avrs"][i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
     }
@@ -266,11 +265,6 @@ void updateUnitStatesStringCache()
 String getUnitStatesStringCache()
 {
   return unitStatesStringCache;
-}
-
-UnitState *getUnitStates()
-{
-  return unitStates;
 }
 
 // returns offset from all units
@@ -290,37 +284,4 @@ String getOffsetsInString()
   }
   offsetString += "]";
   return offsetString;
-}
-
-// checks if unit in display is currently moving
-bool isDisplayMoving()
-{
-  // Request all units moving state and write to array
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
-  for (int i = 0; i < numUnits; i++)
-  {
-    displayState[i] = checkIfMoving(i);
-    if (displayState[i] == 1)
-    {
-#ifdef serial
-      Serial.println("A unit in the display is busy");
-#endif
-      return true;
-
-      // if unit is not available through i2c
-    }
-    else if (displayState[i] == -1)
-    {
-#ifdef serial
-      Serial.println("A unit in the display is sleeping");
-#endif
-      return true;
-    }
-  }
-#ifdef serial
-  Serial.println("Display is standing still");
-#endif
-  return false;
 }
