@@ -501,7 +501,14 @@ void loop()
         String input = Serial.readStringUntil('\n'); // Read input until newline character
         input.trim(); // Remove leading and trailing whitespaces
         Serial.printf("Received: %s\n", input.c_str());
-        // If argumnent is of form mode
+        if (input.startsWith(PARAM_NUM_UNITS)) {
+          int numUnits = -1;
+          sscanf(input.c_str(), "numUnits %d", &numUnits);
+          if (0 < numUnits) {
+            writeThroughNumUnits(numUnits);
+            return;
+          }
+        }
         if (input.startsWith("mode"))
         {
           if (input.endsWith("text"))
