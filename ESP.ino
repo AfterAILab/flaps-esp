@@ -36,6 +36,7 @@ void setup()
   digitalWrite(LED_PIN, HIGH);
 
   operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
+  flashMorseCode(String(operationMode));
   initFS();                                     // initializes filesystem
 #ifdef serial
   Serial.println("Loading main values");
@@ -428,7 +429,8 @@ void loop()
           break;
         }
       }
-      operationMode = initWiFi(1 - operationMode); // Toggle operation mode
+      operationMode = initWiFi((operationMode + 1) % 3);
+      flashMorseCode(String(operationMode));
     }
   }
 
@@ -465,23 +467,35 @@ void loop()
     String mode = getMode();
     String alignment = getAlignment();
     int rpm = getRpm();
-    if (operationMode == OPERATION_MODE_AP)
-    {
-      IPAddress i = WiFi.softAPIP();
-      Serial.printf("Operation mode: AP, IP Address: %s, mode: %s, alignment: %s, rpm: %d",
-                    i.toString().c_str(),
-                    mode.c_str(),
-                    alignment.c_str(),
-                    rpm);
-    }
-    else if (operationMode == OPERATION_MODE_STA)
+    switch (operationMode){
+    case OPERATION_MODE_STA:
     {
       IPAddress i = WiFi.localIP();
-      Serial.printf("Operation mode: STA, IP Address: %s, mode: %s, alignment: %s, rpm: %d",
+      Serial.printf("Operation mode: STA, IP Address: %s, mode: %s, alignment: %s, rpm: %d\n",
                     i.toString().c_str(),
                     mode.c_str(),
                     alignment.c_str(),
                     rpm);
+      break;
+    }
+    case OPERATION_MODE_AP:
+    {
+      IPAddress i = WiFi.softAPIP();
+      Serial.printf("Operation mode: AP, IP Address: %s, mode: %s, alignment: %s, rpm: %d\n",
+                    i.toString().c_str(),
+                    mode.c_str(),
+                    alignment.c_str(),
+                    rpm);
+      break;
+    }
+    case OPERATION_MODE_OFF:
+    {
+      Serial.printf("Operation mode: OFF, mode: %s, alignment: %s, rpm: %d\n",
+                    mode.c_str(),
+                    alignment.c_str(),
+                    rpm);
+      break;
+    }
     }
     if (mode == "text")
     {

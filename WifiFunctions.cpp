@@ -123,17 +123,6 @@ String getMainValues()
   return jsonString;
 }
 
-// Initialize WiFi in AP mode
-bool initWiFiAP()
-{
-  WiFi.mode(WIFI_AP);
-  String chipId = getChipId();
-  String ssid = String(APP_NAME_SHORT) + "_" + chipId;
-  WiFi.softAP(ssid.c_str());
-  delay(100);
-  return WiFi.softAPConfig(IPAddress(192, 168, 10, 123), IPAddress(192, 168, 10, 123), IPAddress(255, 255, 255, 0));
-}
-
 // Initialize WiFi in STA mode
 bool initWiFiSTA()
 {
@@ -192,6 +181,17 @@ bool initWiFiSTA()
   return true;
 }
 
+// Initialize WiFi in AP mode
+bool initWiFiAP()
+{
+  WiFi.mode(WIFI_AP);
+  String chipId = getChipId();
+  String ssid = String(APP_NAME_SHORT) + "_" + chipId;
+  WiFi.softAP(ssid.c_str());
+  delay(100);
+  return WiFi.softAPConfig(IPAddress(192, 168, 10, 123), IPAddress(192, 168, 10, 123), IPAddress(255, 255, 255, 0));
+}
+
 // Initialize WiFi in AP or STA mode
 int initWiFi(int requestedOperationMode)
 {
@@ -230,6 +230,10 @@ int initWiFi(int requestedOperationMode)
         Serial.println("Failed to initialize WiFi in AP mode, too");
       }
     }
+    break;
+  case OPERATION_MODE_OFF:
+    WiFi.mode(WIFI_OFF);
+    Serial.println("Offline mode. Shut down Wi-Fi.");
     break;
   }
   Serial.println(WiFi.localIP());
