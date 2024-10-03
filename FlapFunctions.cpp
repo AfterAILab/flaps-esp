@@ -92,10 +92,6 @@ void writeToUnit(int address, int letter, int flapRpm)
 void showMessage(String message, int flapRpm)
 {
   Serial.println("Entering showMessage function");
-  Serial.print("Original message: ");
-  Serial.println(message);
-  Serial.print("FlapRpm: ");
-  Serial.println(flapRpm);
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -115,10 +111,7 @@ void showMessage(String message, int flapRpm)
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
-  Serial.print(" , number of units: ");
-  Serial.print(numUnits);
-  Serial.print(" , message on units: ");
-  Serial.println(message);
+  Serial.printf("FlapRpm: %d, numUnits: %d, message on units: %s\n", flapRpm, numUnits, message.c_str());
   for (int i = 0; i < numUnits; i++)
   {
     char letter = message[i];
