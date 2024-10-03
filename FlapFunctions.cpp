@@ -95,26 +95,27 @@ void showMessage(String message, int flapRpm)
 
   // Format string per alignment choice
   String alignment = getAlignment();
+  String alignedMessage;
   if (alignment == "left")
   {
-    message = leftString(message);
+    alignedMessage = leftString(message);
   }
   else if (alignment == "right")
   {
-    message = rightString(message);
+    alignedMessage = rightString(message);
   }
   else if (alignment == "center")
   {
-    message = centerString(message);
+    alignedMessage = centerString(message);
   }
 
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
-  Serial.printf("FlapRpm: %d, numUnits: %d, message on units: %s\n", flapRpm, numUnits, message.c_str());
+  Serial.printf("FlapRpm: %d, numUnits: %d, input message: %s, aligned message: %s\n", flapRpm, numUnits, message.c_str(), alignedMessage.c_str());
   for (int i = 0; i < numUnits; i++)
   {
-    char letter = message[i];
+    char letter = alignedMessage[i];
     int letterPosition = translateLettertoInt(letter);
 #ifdef serial
     Serial.print("Unit No.: ");

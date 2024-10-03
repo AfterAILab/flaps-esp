@@ -37,7 +37,7 @@ void setup()
 
   operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
   flashMorseCode(String(operationMode));
-  initFS();                                     // initializes filesystem
+  initFS(); // initializes filesystem
 #ifdef serial
   Serial.println("Loading main values");
 #endif
@@ -467,7 +467,8 @@ void loop()
     String mode = getMode();
     String alignment = getAlignment();
     int rpm = getRpm();
-    switch (operationMode){
+    switch (operationMode)
+    {
     case OPERATION_MODE_STA:
     {
       IPAddress i = WiFi.localIP();
@@ -494,13 +495,83 @@ void loop()
                     mode.c_str(),
                     alignment.c_str(),
                     rpm);
+      Serial.printf("Offsets: %s\n", getOffsetsInString().c_str());
+      if (Serial.available())
+      {                                              // Check if data is available to read
+        String input = Serial.readStringUntil('\n'); // Read input until newline character
+        input.trim(); // Remove leading and trailing whitespaces
+        Serial.printf("Received: %s\n", input.c_str());
+        // If argumnent is of form mode
+        if (input.startsWith("mode"))
+        {
+          if (input.endsWith("text"))
+          {
+            writeThroughMode("text");
+            return;
+          }
+          else if (input.endsWith("date"))
+          {
+            writeThroughMode("date");
+            return;
+          }
+          else if (input.endsWith("clock"))
+          {
+            writeThroughMode("clock");
+            return;
+          }
+        }
+        if (input.startsWith("alignment"))
+        {
+          if (input.endsWith("left"))
+          {
+            writeThroughAlignment("left");
+            return;
+          }
+          else if (input.endsWith("right"))
+          {
+            writeThroughAlignment("right");
+            return;
+          }
+          else if (input.endsWith("center"))
+          {
+            writeThroughAlignment("center");
+            return;
+          }
+        }
+        if (input.startsWith("rpm"))
+        {
+          int rpm = -1;
+          sscanf(input.c_str(), "rpm %d", &rpm);
+          if (0 < rpm && rpm <= 12)
+          {
+            writeThroughRpm(rpm);
+            return;
+          }
+        }
+        // If input is of form set unit_id offset_value, update the offset of the unit
+        // Note that the lengths of unit_id and offset_value are unknown
+        if (input.startsWith("offset"))
+        {
+          int unitAddr = -1;
+          int offset = -1;
+          sscanf(input.c_str(), "offset %d %d", &unitAddr, &offset);
+          if (unitAddr != -1 && offset != -1)
+          {
+            UnitState *unitStates = getUnitStatesStaged();
+            unitStates[unitAddr].offset = offset;
+            unitUpdateFlag = true;
+            setUnitStates(unitStates);
+            updateUnitStatesStringCache();
+            return;
+          }
+        }
+        setText(input);
+      }
       break;
     }
     }
     if (mode == "text")
     {
-      Serial.print(", Text: ");
-      Serial.println(getText());
       showNewData(getText());
     }
     if (mode == "date")
