@@ -11,18 +11,35 @@ int displayState[MAX_NUM_UNITS];
 UnitState unitStates[MAX_NUM_UNITS];
 Timezone timezone;
 const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
+const int suggestedOffsets[] {0, 1993, 1947, 1902, 1857, 1812, 1766, 1721, 1676, 1630, 1585, 1540, 1495, 1449, 1404, 1359, 1313, 1268, 1223, 1178, 1132, 1087, 1042, 996, 951, 906, 860, 815, 770, 725, 679, 634, 589, 543, 498, 453, 408, 362, 317, 272, 226, 181, 136, 91, 45};
+
+int getSuggestedOffset(int letterIndex) {
+  if (letterIndex < 0 || letterIndex >= sizeof(letters)) {
+    return 0;
+  }
+  return suggestedOffsets[letterIndex];
+}
 
 // translates char to letter position
-int translateLettertoInt(char letterchar)
+int translateLetterToIndex(char letterchar)
 {
-  for (int i = 0; i < NUM_FLAPS; i++)
+  for (int i = 0; i < sizeof(letters); i++)
   {
-    if (letterchar == letters[i])
+    if (toUpperCase(letterchar) == toUpperCase(letters[i]))
     {
       return i;
     }
   }
   return -1;
+}
+
+char translateIndextoLetter(int index)
+{
+  if (index < 0 || index >= sizeof(letters))
+  {
+    return ' ';
+  }
+  return letters[index];
 }
 
 // checks for new message to show
@@ -44,7 +61,7 @@ void commitStagedUnitStates()
 
   for (int i = 0; i < numUnits; i++)
   {
-    int address = stagedUnitStates[i].unitAddr;
+    int address = i;
     int offset = stagedUnitStates[i].offset;
     int magneticZeroPositionLetterUpdateIndex = stagedUnitStates[i].magneticZeroPositionLetterIndex;
 
@@ -112,11 +129,11 @@ void showMessage(String message, int flapRpm)
   prefs.begin(APP_NAME_SHORT, true);
   int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
   prefs.end();
-  Serial.printf("FlapRpm: %d, numUnits: %d, input message: %s, aligned message: %s\n", flapRpm, numUnits, message.c_str(), alignedMessage.c_str());
+  Serial.printf("rpm: %d, numUnits: %d, input message: %s, aligned message: %s\n", flapRpm, numUnits, message.c_str(), alignedMessage.c_str());
   for (int i = 0; i < numUnits; i++)
   {
     char letter = alignedMessage[i];
-    int letterPosition = translateLettertoInt(letter);
+    int letterPosition = translateLetterToIndex(letter);
 #ifdef serial
     Serial.print("Unit No.: ");
     Serial.print(i);
@@ -203,7 +220,7 @@ UnitState fetchUnitState(int unitAddr)
   int offsetLSB = Wire.read();
   int offset = (offsetMSB << 8) | offsetLSB;
   int magneticZeroPositionLetterIndex = Wire.read();
-  return UnitState{unitAddr, rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
+  return UnitState{rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
 }
 
 void fetchAndSetUnitStates()
@@ -215,6 +232,11 @@ void fetchAndSetUnitStates()
   {
     unitStates[i] = fetchUnitState(i);
   }
+}
+
+UnitState *getUnitStates()
+{
+  return unitStates;
 }
 
 void setUnitStates(UnitState *states)
@@ -244,7 +266,6 @@ void updateUnitStatesStringCache()
     for (int i = 0; i < numUnits; i++)
     {
       UnitState unitState = unitStates[i];
-      j["avrs"][i]["unitAddr"] = unitState.unitAddr;
       j["avrs"][i]["rotating"] = unitState.rotating;
       j["avrs"][i]["magneticZeroPositionLetterIndex"] = unitState.magneticZeroPositionLetterIndex;
       j["avrs"][i]["offset"] = unitState.offset;

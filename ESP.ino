@@ -298,15 +298,10 @@ void setup()
 
         Serial.printf("Unit update request jsonString: %s\n", jsonString.c_str());
 
-        for(int i = 0; i < jsonObj.length(); i++) {
-          JSONVar unit = jsonObj[i];
-          int unitAddr = -1;
+        for(int unitAddr = 0; unitAddr < jsonObj.length(); unitAddr++) {
+          JSONVar unit = jsonObj[unitAddr];
           int offset = -1;
           int magneticZeroPositionLetterIndex = -1;
-
-          if (unit.hasOwnProperty(PARAM_OFFSET_UNIT_ADDR)) {
-              unitAddr = (int)unit[PARAM_OFFSET_UNIT_ADDR];
-          }
 
           if (unit.hasOwnProperty(PARAM_OFFSET_OFFSET)) {
               offset = (int)unit[PARAM_OFFSET_OFFSET];
@@ -317,7 +312,6 @@ void setup()
           }
 
           if (unitAddr != -1 && offset != -1 && magneticZeroPositionLetterIndex != -1) {
-              unitStates[unitAddr].unitAddr = unitAddr;
               unitStates[unitAddr].offset = offset;
               unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
           } else {
@@ -495,88 +489,124 @@ void loop()
                     mode.c_str(),
                     alignment.c_str(),
                     rpm);
-      Serial.printf("Offsets: %s\n", getOffsetsInString().c_str());
-      if (Serial.available())
-      {                                              // Check if data is available to read
-        String input = Serial.readStringUntil('\n'); // Read input until newline character
-        input.trim(); // Remove leading and trailing whitespaces
-        Serial.printf("Received: %s\n", input.c_str());
-        if (input.startsWith(PARAM_NUM_UNITS)) {
-          int numUnits = -1;
-          sscanf(input.c_str(), "numUnits %d", &numUnits);
-          if (0 < numUnits) {
-            writeThroughNumUnits(numUnits);
-            return;
-          }
-        }
-        if (input.startsWith("mode"))
-        {
-          if (input.endsWith("text"))
-          {
-            writeThroughMode("text");
-            return;
-          }
-          else if (input.endsWith("date"))
-          {
-            writeThroughMode("date");
-            return;
-          }
-          else if (input.endsWith("clock"))
-          {
-            writeThroughMode("clock");
-            return;
-          }
-        }
-        if (input.startsWith("alignment"))
-        {
-          if (input.endsWith("left"))
-          {
-            writeThroughAlignment("left");
-            return;
-          }
-          else if (input.endsWith("right"))
-          {
-            writeThroughAlignment("right");
-            return;
-          }
-          else if (input.endsWith("center"))
-          {
-            writeThroughAlignment("center");
-            return;
-          }
-        }
-        if (input.startsWith("rpm"))
-        {
-          int rpm = -1;
-          sscanf(input.c_str(), "rpm %d", &rpm);
-          if (0 < rpm && rpm <= 12)
-          {
-            writeThroughRpm(rpm);
-            return;
-          }
-        }
-        // If input is of form set unit_id offset_value, update the offset of the unit
-        // Note that the lengths of unit_id and offset_value are unknown
-        if (input.startsWith("offset"))
-        {
-          int unitAddr = -1;
-          int offset = -1;
-          sscanf(input.c_str(), "offset %d %d", &unitAddr, &offset);
-          if (unitAddr != -1 && offset != -1)
-          {
-            UnitState *unitStates = getUnitStatesStaged();
-            unitStates[unitAddr].offset = offset;
-            unitUpdateFlag = true;
-            setUnitStates(unitStates);
-            updateUnitStatesStringCache();
-            return;
-          }
-        }
-        setText(input);
-      }
       break;
     }
     }
+    Serial.print("Magnet: ");
+    UnitState *unitStates = getUnitStates();
+    for (int i = 0; i < getNumUnits(); i++)
+    {
+      if (i == 0)
+      {
+        Serial.print("[");
+      }
+      Serial.print(translateIndextoLetter(unitStates[i].magneticZeroPositionLetterIndex));
+      if (i == getNumUnits() - 1)
+      {
+        Serial.printf("]\n");
+      }
+      else
+      {
+        Serial.print(", ");
+      }
+    }
+    Serial.printf("Offsets: %s\n", getOffsetsInString().c_str());
+    if (operationMode == OPERATION_MODE_OFF && Serial.available())
+    {                                              // Check if data is available to read
+      String input = Serial.readStringUntil('\n'); // Read input until newline character
+      input.trim();                                // Remove leading and trailing whitespaces
+      Serial.printf("Received: %s\n", input.c_str());
+      // If argumnent is of form mode
+      if (input.startsWith("mode"))
+      {
+        if (input.endsWith("text"))
+        {
+          writeThroughMode("text");
+          return;
+        }
+        else if (input.endsWith("date"))
+        {
+          writeThroughMode("date");
+          return;
+        }
+        else if (input.endsWith("clock"))
+        {
+          writeThroughMode("clock");
+          return;
+        }
+      }
+      if (input.startsWith("alignment"))
+      {
+        if (input.endsWith("left"))
+        {
+          writeThroughAlignment("left");
+          return;
+        }
+        else if (input.endsWith("right"))
+        {
+          writeThroughAlignment("right");
+          return;
+        }
+        else if (input.endsWith("center"))
+        {
+          writeThroughAlignment("center");
+          return;
+        }
+      }
+      if (input.startsWith("rpm"))
+      {
+        int rpm = -1;
+        sscanf(input.c_str(), "rpm %d", &rpm);
+        if (0 < rpm && rpm <= 12)
+        {
+          writeThroughRpm(rpm);
+          return;
+        }
+      }
+      // If input is of form set unit_id offset_value, update the offset of the unit
+      // Note that the lengths of unit_id and offset_value are unknown
+      if (input.startsWith("offset"))
+      {
+        int unitAddr = -1;
+        int offset = -1;
+        sscanf(input.c_str(), "offset %d %d", &unitAddr, &offset);
+        if (unitAddr != -1 && offset != -1)
+        {
+          UnitState *unitStates = getUnitStates();
+          unitStates[unitAddr].offset = offset;
+          unitUpdateFlag = true;
+          setUnitStatesStaged(unitStates);
+          updateUnitStatesStringCache();
+          return;
+        }
+      }
+
+      if (input.startsWith("magnet"))
+      {
+        int unitAddr = -1;
+        char magneticZeroPositionLetter;
+        int sscanfCount = sscanf(input.c_str(), "magnet %d %c", &unitAddr, &magneticZeroPositionLetter);
+        if (sscanfCount == 1)
+        {
+          magneticZeroPositionLetter = ' ';
+        }
+        int magneticZeroPositionLetterIndex = translateLetterToIndex(magneticZeroPositionLetter);
+        Serial.printf("magnet: %c, %d\n", magneticZeroPositionLetter, magneticZeroPositionLetterIndex);
+        if (unitAddr != -1 && magneticZeroPositionLetterIndex != -1)
+        {
+          int suggestedOffset = getSuggestedOffset(magneticZeroPositionLetterIndex);
+          UnitState *unitStates = getUnitStates();
+          unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
+          unitStates[unitAddr].offset = suggestedOffset;
+          unitUpdateFlag = true;
+          setUnitStatesStaged(unitStates);
+          updateUnitStatesStringCache();
+          return;
+        }
+      }
+      setText(input);
+    }
+
     if (mode == "text")
     {
       showNewData(getText());
