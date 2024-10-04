@@ -604,6 +604,15 @@ void loop()
           return;
         }
       }
+
+      if (input.startsWith("clock"))
+      {
+        char clock[6];
+        sscanf(input.c_str(), "clock %s", clock);
+        setOfflineClock(clock);
+        return;
+      }
+      
       setText(input);
     }
 
@@ -617,7 +626,14 @@ void loop()
     }
     if (mode == "clock")
     {
-      showClock();
+      if (operationMode == OPERATION_MODE_OFF)
+      {
+        showOfflineClock();
+      }
+      else
+      {
+        showClock();
+      }
     }
     Serial.println();
   }

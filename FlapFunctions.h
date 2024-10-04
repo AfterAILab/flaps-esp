@@ -18,6 +18,8 @@ void showNewData(String message);
 String getDateString();
 String getClockString();
 void showDate();
+void setOfflineClock(char *clock);
+void showOfflineClock();
 void showClock();
 void updateTimezone();
 void showMessage(String message, int flapRpm);
