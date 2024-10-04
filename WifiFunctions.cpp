@@ -203,31 +203,31 @@ int initWiFi(int requestedOperationMode)
     success = initWiFiAP();
     if (success)
     {
-      Serial.println("WiFi initialized in AP mode");
+      Serial.println("Wi-Fi initialized in AP mode");
     }
     else
     {
-      Serial.println("Failed to initialize WiFi in AP mode");
+      Serial.println("Failed to initialize Wi-Fi in AP mode");
     }
     break;
   case OPERATION_MODE_STA:
     success = initWiFiSTA();
     if (success)
     {
-      Serial.println("WiFi initialized in STA mode");
+      Serial.println("Wi-Fi initialized in STA mode");
     }
     else
     {
-      Serial.println("Failed to initialize WiFi in STA mode. Switching to AP mode");
+      Serial.println("Failed to initialize Wi-Fi in STA mode. Switching to AP mode");
       operationMode = OPERATION_MODE_AP;
       success = initWiFiAP();
       if (success)
       {
-        Serial.println("WiFi initialized in AP mode");
+        Serial.println("Wi-Fi initialized in AP mode");
       }
       else
       {
-        Serial.println("Failed to initialize WiFi in AP mode, too");
+        Serial.println("Failed to initialize Wi-Fi in AP mode, too");
       }
     }
     break;
