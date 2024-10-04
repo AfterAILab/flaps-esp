@@ -12,6 +12,8 @@ UnitState unitStates[MAX_NUM_UNITS];
 Timezone timezone;
 const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
 const int suggestedOffsets[] {0, 1993, 1947, 1902, 1857, 1812, 1766, 1721, 1676, 1630, 1585, 1540, 1495, 1449, 1404, 1359, 1313, 1268, 1223, 1178, 1132, 1087, 1042, 996, 951, 906, 860, 815, 770, 725, 679, 634, 589, 543, 498, 453, 408, 362, 317, 272, 226, 181, 136, 91, 45};
+int offlineClockBasisInMinutes = 0;
+unsigned long offlineClockBasisSetAt = 0;
 
 int getSuggestedOffset(int letterIndex) {
   if (letterIndex < 0 || letterIndex >= sizeof(letters)) {
@@ -172,6 +174,32 @@ String getClockString()
 void showDate()
 {
   showNewData(timezone.dateTime(DATE_FORMAT));
+}
+
+void setOfflineClock(char *clock) {
+  // clock is of form "HH:MM"
+  int offlineClockHour = 0;
+  int offlineClockMinute = 0;
+  int sscanfCount = sscanf(clock, "%d:%d", &offlineClockHour, &offlineClockMinute);
+  if (sscanfCount != 2) {
+    Serial.println("Invalid clock format, setting to 00:00");
+    offlineClockHour = 0;
+    offlineClockMinute = 0;
+  }
+  offlineClockBasisInMinutes = offlineClockHour * 60 + offlineClockMinute;
+  offlineClockBasisSetAt = millis();
+}
+
+void showOfflineClock()
+{
+  unsigned long currentMillis = millis();
+  unsigned long elapsedMinutes = (currentMillis - offlineClockBasisSetAt) / 60000;
+  unsigned long elapsedMinutesModWithOffset = (elapsedMinutes + offlineClockBasisInMinutes) % 1440;
+  unsigned long elapsedHours = elapsedMinutesModWithOffset / 60;
+  unsigned long elapsedMinutesMod = elapsedMinutesModWithOffset % 60;
+  char clock[6];
+  sprintf(clock, "%02d:%02d", (int)elapsedHours, (int)elapsedMinutesMod);
+  showNewData(clock);
 }
 
 void showClock()
