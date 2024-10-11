@@ -63,7 +63,7 @@ void commitStagedUnitStates()
 
   for (int i = 0; i < numUnits; i++)
   {
-    int address = i;
+    int address = stagedUnitStates[i].unitAddr;
     int offset = stagedUnitStates[i].offset;
     int magneticZeroPositionLetterUpdateIndex = stagedUnitStates[i].magneticZeroPositionLetterIndex;
 
@@ -248,7 +248,7 @@ UnitState fetchUnitState(int unitAddr)
   int offsetLSB = Wire.read();
   int offset = (offsetMSB << 8) | offsetLSB;
   int magneticZeroPositionLetterIndex = Wire.read();
-  return UnitState{rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
+  return UnitState{unitAddr, rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
 }
 
 void fetchAndSetUnitStates()
@@ -294,6 +294,7 @@ void updateUnitStatesStringCache()
     for (int i = 0; i < numUnits; i++)
     {
       UnitState unitState = unitStates[i];
+      j["avrs"][i]["unitAddr"] = unitState.unitAddr;
       j["avrs"][i]["rotating"] = unitState.rotating;
       j["avrs"][i]["magneticZeroPositionLetterIndex"] = unitState.magneticZeroPositionLetterIndex;
       j["avrs"][i]["offset"] = unitState.offset;

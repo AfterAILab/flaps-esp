@@ -5,6 +5,7 @@
 #include "stringHandling.h"
 
 struct UnitState {
+    int unitAddr;
     bool rotating;
     int offset;
     int magneticZeroPositionLetterIndex;
