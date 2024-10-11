@@ -286,8 +286,28 @@ void setup()
 
   server.on("/unit", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
-        String jsonString = String((char*)data).substring(0, len);
+      static String jsonString;
+
+      // Append current chunk to jsonString
+      jsonString += String((char*)data).substring(0, len);
+
+      // Check if all data has been received
+      if(index + len == total) {
+        // Parse JSON
         JSONVar jsonObj = JSON.parse(jsonString);
+
+        if (JSON.typeof(jsonObj) == "undefined") {
+          Serial.println("Parsing input failed!");
+          request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+          return;
+        }
+
+        Serial.printf("Received JSON: %s\n", jsonString.c_str());
+
+        // Clear jsonString for future requests
+        jsonString = "";
+
+        // Main processing
         UnitState *unitStates = getUnitStatesStaged();
 
         if (JSON.typeof(jsonObj) == "undefined") {
@@ -298,10 +318,15 @@ void setup()
 
         Serial.printf("Unit update request jsonString: %s\n", jsonString.c_str());
 
-        for(int unitAddr = 0; unitAddr < jsonObj.length(); unitAddr++) {
-          JSONVar unit = jsonObj[unitAddr];
+        for(int i = 0; i < jsonObj.length(); i++) {
+          JSONVar unit = jsonObj[i];
+          int unitAddr = -1;
           int offset = -1;
           int magneticZeroPositionLetterIndex = -1;
+
+          if (unit.hasOwnProperty(PARAM_OFFSET_UNIT_ADDR)) {
+              unitAddr = (int)unit[PARAM_OFFSET_UNIT_ADDR];
+          }
 
           if (unit.hasOwnProperty(PARAM_OFFSET_OFFSET)) {
               offset = (int)unit[PARAM_OFFSET_OFFSET];
@@ -312,6 +337,7 @@ void setup()
           }
 
           if (unitAddr != -1 && offset != -1 && magneticZeroPositionLetterIndex != -1) {
+              unitStates[unitAddr].unitAddr = unitAddr;
               unitStates[unitAddr].offset = offset;
               unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
           } else {
@@ -347,7 +373,8 @@ void setup()
           memcpy(buffer, jsonCChar + index, toCopy);
           return toCopy;
         });
-        request -> send(response); });
+        request -> send(response);
+      } });
 
   server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -612,7 +639,7 @@ void loop()
         setOfflineClock(clock);
         return;
       }
-      
+
       setText(input);
     }
 

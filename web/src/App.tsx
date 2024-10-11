@@ -380,7 +380,7 @@ export default function App() {
 									title="Magnetic Zero Position Letter"
 									dataIndex="magneticZeroPositionLetterIndex"
 									key="magneticZeroPositionLetterIndex"
-									render={(magneticZeroPositionLetterIndex, _record, index) => {
+									render={(magneticZeroPositionLetterIndex, record) => {
 										return (
 											<Select
 												className='w-24'
@@ -400,7 +400,7 @@ export default function App() {
 													setUnitStates((current) => ({
 														...current,
 														avrs: current.avrs.map((avr, i) => {
-															if (i === index) {
+															if (i === record.unitAddr) {
 																return {
 																	...avr,
 																	offset: parseInt(suggestedOffset),
@@ -432,7 +432,7 @@ export default function App() {
 											</Popover>
 										</span>}
 									dataIndex="offset" key="offset"
-									render={(offset, _record, index) => (
+									render={(offset, record) => (
 										<InputNumber
 											className='max-w-20'
 											type="number"
@@ -449,7 +449,7 @@ export default function App() {
 												setUnitStates((current) => ({
 													...current,
 													avrs: current.avrs.map((avr, i) => {
-														if (i === index) {
+														if (i === record.unitAddr) {
 															return {
 																...avr,
 																offset: parseInt(value)
