@@ -8,3 +8,7 @@ We developed this software based on `ESPMaster` directory of [davidkingsman/spli
 - Expanded the range of configuration that can be updated through the web UI
 - Added access point (AP) mode, allowing users to connect to the leader directly
 - Variable length followers
+
+## API Document
+
+Refer to [the API document](./document/api.md).
