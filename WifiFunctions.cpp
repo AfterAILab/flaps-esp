@@ -118,6 +118,7 @@ String getMainValues()
   values[PARAM_RPM] = rpm;
   values[PARAM_MODE] = mode;
   values[PARAM_NUM_UNITS] = numUnits;
+  values[PARAM_TEXT] = text;
 
   String jsonString = JSON.stringify(values);
   return jsonString;

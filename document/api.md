@@ -44,7 +44,8 @@ Returns the current display configuration.
 	"alignment": "string", // Text alignment ("left", "center", "right")
 	"rpm": "number", // Rotation speed in RPM (1-12)
 	"mode": "string", // Display mode ("text", "date", "clock")
-	"numUnits": "number" // Number of connected display units (0-128)
+	"numUnits": "number", // Number of connected display units (0-128)
+	"text": "string" // Text to display (meaningful only if mode="text")
 }
 ```
 
