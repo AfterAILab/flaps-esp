@@ -1,4 +1,4 @@
-# AfterAI Flaps ESP 1.1 API Document
+# AfterAI Flaps ESP 1.2 API Document
 
 ## Overview
 

@@ -28,7 +28,7 @@ void setup()
 {
   // Serial port for debugging purposes
   Serial.begin(115200);
-  Serial.println("===== AfterAI Flaps ESP 1.1.0 =====");
+  Serial.println("===== AfterAI Flaps ESP 1.2.0 =====");
   Wire.begin(SDA_PIN, SCL_PIN); // SDA, SCL pins
   pinMode(MODE_PIN, INPUT);     // Boot pin. While running, it is used as a toggle button for operation mode change. Externally pulled up.
   pinMode(LED_PIN, OUTPUT);     // Indicator LED pin
