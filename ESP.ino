@@ -12,6 +12,7 @@
 #include "env.h"
 #include "utils.h"
 #include "WifiFunctions.h"
+#include "Timezone.h"
 #include "FlapFunctions.h"
 #include "I2C.h"
 #include "morseCode.h"
@@ -50,7 +51,7 @@ void setup()
   if (operationMode == OPERATION_MODE_STA)
   {
     waitForSync(10); // Wait for 10 seconds to sync time
-    updateTimezone();
+    applyUserTimezone();
   }
 
   // Web Server Root URL
@@ -260,7 +261,7 @@ void setup()
             prefs.begin(APP_NAME_SHORT, false);
             prefs.putString("timezone", (const char*) jsonObj["timezone"]);
             prefs.end();
-            updateTimezone();
+            applyUserTimezone();
         }
 
         JSONVar j;
@@ -649,7 +650,7 @@ void loop()
     }
     if (mode == "date")
     {
-      showDate();
+      showNewData(getDateString());
     }
     if (mode == "clock")
     {
@@ -659,7 +660,7 @@ void loop()
       }
       else
       {
-        showClock();
+        showNewData(getClockString());
       }
     }
     Serial.println();

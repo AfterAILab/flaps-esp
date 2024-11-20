@@ -1,5 +1,4 @@
 #include <Wire.h>
-#include <ezTime.h>
 #include <Arduino_JSON.h>
 #include "FlapFunctions.h"
 #include "prefs.h"
@@ -7,9 +6,11 @@
 #include "utils.h"
 #include "env.h"
 
-int displayState[MAX_NUM_UNITS];
+/**
+ * @purpose Maintain all unit states as a global variable
+ */
 UnitState unitStates[MAX_NUM_UNITS];
-Timezone timezone;
+
 const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
 const int suggestedOffsets[] {0, 1993, 1947, 1902, 1857, 1812, 1766, 1721, 1676, 1630, 1585, 1540, 1495, 1449, 1404, 1359, 1313, 1268, 1223, 1178, 1132, 1087, 1042, 996, 951, 906, 860, 815, 770, 725, 679, 634, 589, 543, 498, 453, 408, 362, 317, 272, 226, 181, 136, 91, 45};
 int offlineClockBasisInMinutes = 0;
@@ -152,30 +153,6 @@ void showMessage(String message, int flapRpm)
   }
 }
 
-void updateTimezone()
-{
-  String timezoneString;
-  prefs.begin(APP_NAME_SHORT, false);
-  timezoneString = prefs.getString("timezone", "Asia/Tokyo");
-  prefs.end();
-  timezone.setLocation(timezoneString);
-}
-
-String getDateString()
-{
-  return timezone.dateTime(DATE_FORMAT);
-}
-
-String getClockString()
-{
-  return timezone.dateTime(CLOCK_FORMAT);
-}
-
-void showDate()
-{
-  showNewData(timezone.dateTime(DATE_FORMAT));
-}
-
 void setOfflineClock(char *clock) {
   // clock is of form "HH:MM"
   int offlineClockHour = 0;
@@ -200,11 +177,6 @@ void showOfflineClock()
   char clock[6];
   sprintf(clock, "%02d:%02d", (int)elapsedHours, (int)elapsedMinutesMod);
   showNewData(clock);
-}
-
-void showClock()
-{
-  showNewData(timezone.dateTime(CLOCK_FORMAT));
 }
 
 // checks if single unit is moving
