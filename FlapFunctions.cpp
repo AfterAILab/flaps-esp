@@ -1,55 +1,26 @@
 #include <Wire.h>
-#include <ezTime.h>
 #include <Arduino_JSON.h>
 #include "FlapFunctions.h"
 #include "prefs.h"
 #include "WifiFunctions.h"
 #include "utils.h"
 #include "env.h"
+#include "letters.h"
 
-int displayState[MAX_NUM_UNITS];
+/**
+ * @purpose Maintain all unit states as a global variablef
+ */
 UnitState unitStates[MAX_NUM_UNITS];
-Timezone timezone;
-const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
-const int suggestedOffsets[] {0, 1993, 1947, 1902, 1857, 1812, 1766, 1721, 1676, 1630, 1585, 1540, 1495, 1449, 1404, 1359, 1313, 1268, 1223, 1178, 1132, 1087, 1042, 996, 951, 906, 860, 815, 770, 725, 679, 634, 589, 543, 498, 453, 408, 362, 317, 272, 226, 181, 136, 91, 45};
+
+/**
+ * @purpose The user set current time of the day in minutes
+ */
 int offlineClockBasisInMinutes = 0;
+
+/**
+ * @purpose The time at which the offline clock basis was set
+ */
 unsigned long offlineClockBasisSetAt = 0;
-
-int getSuggestedOffset(int letterIndex) {
-  if (letterIndex < 0 || letterIndex >= sizeof(letters)) {
-    return 0;
-  }
-  return suggestedOffsets[letterIndex];
-}
-
-// translates char to letter position
-int translateLetterToIndex(char letterchar)
-{
-  for (int i = 0; i < sizeof(letters); i++)
-  {
-    if (toUpperCase(letterchar) == toUpperCase(letters[i]))
-    {
-      return i;
-    }
-  }
-  return -1;
-}
-
-char translateIndextoLetter(int index)
-{
-  if (index < 0 || index >= sizeof(letters))
-  {
-    return ' ';
-  }
-  return letters[index];
-}
-
-// checks for new message to show
-void showNewData(String message)
-{
-  showMessage(message, getRpm());
-  setWrittenLast(message);
-}
 
 // This function is not called directly from the /offset POST handler, but from inside the main loop
 // It is due to the fact that the /offset POST handler cannot afford the time of calling Wire.beginTransmission() and Wire.endTransmission()
@@ -85,7 +56,10 @@ void commitStagedUnitStates()
   }
 }
 
-// write letter position and rpm to single unit
+/**
+ * @caller showMessage()
+ * @purpose Send an I2C request to a flap unit to display a letter at a given RPM
+ */
 void writeToUnit(int address, int letter, int flapRpm)
 {
   int sendArray[2] = {letter, flapRpm}; // Array with values to send to unit
@@ -107,10 +81,14 @@ void writeToUnit(int address, int letter, int flapRpm)
   Wire.endTransmission(); // send values to unit
 }
 
-// pushes message to units
-void showMessage(String message, int flapRpm)
+/**
+ * @caller setup() and loop() in ESP.ino
+ * @purpose Decompose a message into individual letters and send each letter to a flap unit at a given RPM
+ */
+void showMessage(String message)
 {
   Serial.println("Entering showMessage function");
+  int flapRpm = getRpm();
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -150,32 +128,13 @@ void showMessage(String message, int flapRpm)
       writeToUnit(i, letterPosition, flapRpm);
     }
   }
+  setWrittenLast(message);
 }
 
-void updateTimezone()
-{
-  String timezoneString;
-  prefs.begin(APP_NAME_SHORT, false);
-  timezoneString = prefs.getString("timezone", "Asia/Tokyo");
-  prefs.end();
-  timezone.setLocation(timezoneString);
-}
-
-String getDateString()
-{
-  return timezone.dateTime(DATE_FORMAT);
-}
-
-String getClockString()
-{
-  return timezone.dateTime(CLOCK_FORMAT);
-}
-
-void showDate()
-{
-  showNewData(timezone.dateTime(DATE_FORMAT));
-}
-
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Set the two global variables that maintain the basis for the offline clock
+ */
 void setOfflineClock(char *clock) {
   // clock is of form "HH:MM"
   int offlineClockHour = 0;
@@ -190,6 +149,10 @@ void setOfflineClock(char *clock) {
   offlineClockBasisSetAt = millis();
 }
 
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Show the current time of the day as a message
+ */
 void showOfflineClock()
 {
   unsigned long currentMillis = millis();
@@ -199,38 +162,13 @@ void showOfflineClock()
   unsigned long elapsedMinutesMod = elapsedMinutesModWithOffset % 60;
   char clock[6];
   sprintf(clock, "%02d:%02d", (int)elapsedHours, (int)elapsedMinutesMod);
-  showNewData(clock);
+  showMessage(clock);
 }
 
-void showClock()
-{
-  showNewData(timezone.dateTime(CLOCK_FORMAT));
-}
-
-// checks if single unit is moving
-int checkIfMoving(int address)
-{
-  char active;
-  Wire.requestFrom(address, ANSWER_SIZE, true);
-  active = Wire.read();
-#ifdef serial
-  Serial.print(address);
-  Serial.print(":");
-  Serial.print(active);
-  Serial.println();
-#endif
-  if (active == -1)
-  {
-#ifdef serial
-    Serial.println("Try to wake up unit");
-#endif
-    Wire.beginTransmission(address);
-    Wire.endTransmission();
-    // delay(5);
-  }
-  return active;
-}
-
+/**
+ * @caller fetchAndSetUnitStates()
+ * @purpose Fetch the state from a flap unit by I2C request and update the global unitStates array
+ */
 UnitState fetchUnitState(int unitAddr)
 {
   int bytesRead = Wire.requestFrom(unitAddr, ANSWER_SIZE, true);
@@ -251,6 +189,10 @@ UnitState fetchUnitState(int unitAddr)
   return UnitState{unitAddr, rotating, offset, magneticZeroPositionLetterIndex, lastResponseAtMillis};
 }
 
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Fetch the state from all flap units by I2C requests and update the global unitStates array
+ */
 void fetchAndSetUnitStates()
 {
   prefs.begin(APP_NAME_SHORT, true);
@@ -262,11 +204,26 @@ void fetchAndSetUnitStates()
   }
 }
 
+/**
+ * @purpose Save time from a web API request handler to serialize the unit states in a JSON string, otherwise it times out
+ */
+String unitStatesStringCache = "";
+
+/**
+ * @caller loop() in ESP.ino
+ * @purpose
+ * - Log magnetic zero position letter index for each unit
+ * - Update the global unitStates array, stage it for commit, and update the string cache
+ */
 UnitState *getUnitStates()
 {
   return unitStates;
 }
 
+/**
+ * @caller setup() in ESP.ino
+ * @purpose Set the global unitStates array
+ */
 void setUnitStates(UnitState *states)
 {
   for (int i = 0; i < MAX_NUM_UNITS; i++)
@@ -275,9 +232,10 @@ void setUnitStates(UnitState *states)
   }
 }
 
-String unitStatesStringCache = "";
-const char emptyArray[] = "[]";
-
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Update the JSON string cache of the unit states
+ */
 void updateUnitStatesStringCache()
 {
   JSONVar j;
@@ -287,7 +245,7 @@ void updateUnitStatesStringCache()
   if (numUnits <= 0)
   {
     // Empty array for avrs
-    j["avrs"] = JSON.parse(emptyArray);
+    j["avrs"] = JSON.parse("[]");
   }
   else
   {
@@ -306,12 +264,20 @@ void updateUnitStatesStringCache()
   unitStatesStringCache = JSON.stringify(j);
 }
 
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Quickly get the JSON string of the unit states
+ */
 String getUnitStatesStringCache()
 {
   return unitStatesStringCache;
 }
 
-// returns offset from all units
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Respond a GET request to /offset
+ * @purpose Logging the offsets of all units in the offline mode
+ */
 String getOffsetsInString()
 {
   String offsetString = "[";

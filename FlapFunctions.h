@@ -2,7 +2,6 @@
 #define FLAPFUNCTIONS_H
 
 #include <Arduino.h>
-#include "stringHandling.h"
 
 struct UnitState {
     int unitAddr;
@@ -12,19 +11,9 @@ struct UnitState {
     unsigned long lastResponseAtMillis; // millis() when the last response was received. Wraps around every 49 days.
 };
 
-int getSuggestedOffset(int letterIndex);
-int translateLetterToIndex(char letterchar);
-char translateIndextoLetter(int index);
-void showNewData(String message);
-String getDateString();
-String getClockString();
-void showDate();
+void showMessage(String message);
 void setOfflineClock(char *clock);
 void showOfflineClock();
-void showClock();
-void updateTimezone();
-void showMessage(String message, int flapRpm);
-UnitState fetchUnitState(int unitAddr);
 UnitState *getUnitStates();
 void setUnitStates(UnitState *states);
 void fetchAndSetUnitStates();

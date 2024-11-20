@@ -9,9 +9,11 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ezTime.h>
+#include "letters.h"
 #include "env.h"
 #include "utils.h"
 #include "WifiFunctions.h"
+#include "Timezone.h"
 #include "FlapFunctions.h"
 #include "I2C.h"
 #include "morseCode.h"
@@ -50,7 +52,7 @@ void setup()
   if (operationMode == OPERATION_MODE_STA)
   {
     waitForSync(10); // Wait for 10 seconds to sync time
-    updateTimezone();
+    applyUserTimezone();
   }
 
   // Web Server Root URL
@@ -260,7 +262,7 @@ void setup()
             prefs.begin(APP_NAME_SHORT, false);
             prefs.putString("timezone", (const char*) jsonObj["timezone"]);
             prefs.end();
-            updateTimezone();
+            applyUserTimezone();
         }
 
         JSONVar j;
@@ -418,7 +420,7 @@ void setup()
   if (operationMode == OPERATION_MODE_STA)
   {
     // Display the current IP address
-    showMessage(WiFi.localIP().toString(), 6);
+    showMessage(WiFi.localIP().toString());
     // Delay for the user to check the IP address on display
     delay(5000);
   }
@@ -645,11 +647,11 @@ void loop()
 
     if (mode == "text")
     {
-      showNewData(getText());
+      showMessage(getText());
     }
     if (mode == "date")
     {
-      showDate();
+      showMessage(getDateString());
     }
     if (mode == "clock")
     {
@@ -659,7 +661,7 @@ void loop()
       }
       else
       {
-        showClock();
+        showMessage(getClockString());
       }
     }
     Serial.println();
