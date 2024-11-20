@@ -14,7 +14,6 @@ struct UnitState {
 void showMessage(String message);
 void setOfflineClock(char *clock);
 void showOfflineClock();
-UnitState fetchUnitState(int unitAddr);
 UnitState *getUnitStates();
 void setUnitStates(UnitState *states);
 void fetchAndSetUnitStates();
