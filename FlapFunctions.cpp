@@ -5,45 +5,14 @@
 #include "WifiFunctions.h"
 #include "utils.h"
 #include "env.h"
+#include "letters.h"
 
 /**
  * @purpose Maintain all unit states as a global variable
  */
 UnitState unitStates[MAX_NUM_UNITS];
-
-const char letters[] = {' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '$', '&', '#', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '-', '?', '!'};
-const int suggestedOffsets[] {0, 1993, 1947, 1902, 1857, 1812, 1766, 1721, 1676, 1630, 1585, 1540, 1495, 1449, 1404, 1359, 1313, 1268, 1223, 1178, 1132, 1087, 1042, 996, 951, 906, 860, 815, 770, 725, 679, 634, 589, 543, 498, 453, 408, 362, 317, 272, 226, 181, 136, 91, 45};
 int offlineClockBasisInMinutes = 0;
 unsigned long offlineClockBasisSetAt = 0;
-
-int getSuggestedOffset(int letterIndex) {
-  if (letterIndex < 0 || letterIndex >= sizeof(letters)) {
-    return 0;
-  }
-  return suggestedOffsets[letterIndex];
-}
-
-// translates char to letter position
-int translateLetterToIndex(char letterchar)
-{
-  for (int i = 0; i < sizeof(letters); i++)
-  {
-    if (toUpperCase(letterchar) == toUpperCase(letters[i]))
-    {
-      return i;
-    }
-  }
-  return -1;
-}
-
-char translateIndextoLetter(int index)
-{
-  if (index < 0 || index >= sizeof(letters))
-  {
-    return ' ';
-  }
-  return letters[index];
-}
 
 // checks for new message to show
 void showNewData(String message)

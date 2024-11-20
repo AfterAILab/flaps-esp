@@ -9,6 +9,7 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ezTime.h>
+#include "letters.h"
 #include "env.h"
 #include "utils.h"
 #include "WifiFunctions.h"
