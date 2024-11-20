@@ -420,7 +420,7 @@ void setup()
   if (operationMode == OPERATION_MODE_STA)
   {
     // Display the current IP address
-    showMessage(WiFi.localIP().toString(), 6);
+    showMessage(WiFi.localIP().toString());
     // Delay for the user to check the IP address on display
     delay(5000);
   }
@@ -647,11 +647,11 @@ void loop()
 
     if (mode == "text")
     {
-      showNewData(getText());
+      showMessage(getText());
     }
     if (mode == "date")
     {
-      showNewData(getDateString());
+      showMessage(getDateString());
     }
     if (mode == "clock")
     {
@@ -661,7 +661,7 @@ void loop()
       }
       else
       {
-        showNewData(getClockString());
+        showMessage(getClockString());
       }
     }
     Serial.println();

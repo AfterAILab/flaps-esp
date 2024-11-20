@@ -11,10 +11,9 @@ struct UnitState {
     unsigned long lastResponseAtMillis; // millis() when the last response was received. Wraps around every 49 days.
 };
 
-void showNewData(String message);
+void showMessage(String message);
 void setOfflineClock(char *clock);
 void showOfflineClock();
-void showMessage(String message, int flapRpm);
 UnitState fetchUnitState(int unitAddr);
 UnitState *getUnitStates();
 void setUnitStates(UnitState *states);

@@ -8,18 +8,11 @@
 #include "letters.h"
 
 /**
- * @purpose Maintain all unit states as a global variable
+ * @purpose Maintain all unit states as a global variablef
  */
 UnitState unitStates[MAX_NUM_UNITS];
 int offlineClockBasisInMinutes = 0;
 unsigned long offlineClockBasisSetAt = 0;
-
-// checks for new message to show
-void showNewData(String message)
-{
-  showMessage(message, getRpm());
-  setWrittenLast(message);
-}
 
 // This function is not called directly from the /offset POST handler, but from inside the main loop
 // It is due to the fact that the /offset POST handler cannot afford the time of calling Wire.beginTransmission() and Wire.endTransmission()
@@ -55,7 +48,10 @@ void commitStagedUnitStates()
   }
 }
 
-// write letter position and rpm to single unit
+/**
+ * @caller showMessage()
+ * @purpose Send an I2C request to a flap unit to display a letter at a given RPM
+ */
 void writeToUnit(int address, int letter, int flapRpm)
 {
   int sendArray[2] = {letter, flapRpm}; // Array with values to send to unit
@@ -77,10 +73,14 @@ void writeToUnit(int address, int letter, int flapRpm)
   Wire.endTransmission(); // send values to unit
 }
 
-// pushes message to units
-void showMessage(String message, int flapRpm)
+/**
+ * @caller setup() and loop() in ESP.ino
+ * @purpose Decompose a message into individual letters and send each letter to a flap unit at a given RPM
+ */
+void showMessage(String message)
 {
   Serial.println("Entering showMessage function");
+  int flapRpm = getRpm();
 
   // Format string per alignment choice
   String alignment = getAlignment();
@@ -120,6 +120,7 @@ void showMessage(String message, int flapRpm)
       writeToUnit(i, letterPosition, flapRpm);
     }
   }
+  setWrittenLast(message);
 }
 
 void setOfflineClock(char *clock) {
@@ -145,7 +146,7 @@ void showOfflineClock()
   unsigned long elapsedMinutesMod = elapsedMinutesModWithOffset % 60;
   char clock[6];
   sprintf(clock, "%02d:%02d", (int)elapsedHours, (int)elapsedMinutesMod);
-  showNewData(clock);
+  showMessage(clock);
 }
 
 // checks if single unit is moving
