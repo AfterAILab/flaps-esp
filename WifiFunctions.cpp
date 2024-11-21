@@ -1,130 +1,16 @@
+#include <Arduino.h>
 #include <Arduino_JSON.h>
+#include <WiFi.h>
 #include "WifiFunctions.h"
 #include "utils.h"
-#include "prefs.h"
-#include "LittleFS.h"
+#include "nvsUtils.h"
 #include "env.h"
 #include "files.h"
 
-JSONVar values;
-// Variables to save values from HTML form
-String writtenLast;
-String alignment;
-int rpm;
-String mode;
-int numUnits;
-String text;
-UnitState unitStatesStaged[MAX_NUM_UNITS];
-
-void writeThroughAlignment(String message)
-{
-  alignment = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putString(PARAM_ALIGNMENT, alignment);
-  prefs.end();
-}
-
-void writeThroughRpm(int message)
-{
-  rpm = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt(PARAM_RPM, rpm);
-  prefs.end();
-}
-
-void writeThroughMode(String message)
-{
-  mode = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putString(PARAM_MODE, mode);
-  prefs.end();
-}
-
-void writeThroughNumUnits(int message)
-{
-  numUnits = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt(PARAM_NUM_UNITS, numUnits);
-  prefs.end();
-}
-
-void setText(String message)
-{
-  text = message;
-}
-
-void setUnitStatesStaged(UnitState *unitStates)
-{
-  for (int i = 0; i < MAX_NUM_UNITS; i++)
-  {
-    unitStatesStaged[i] = unitStates[i];
-  }
-}
-
-String getAlignment()
-{
-  return alignment;
-}
-
-String getMode()
-{
-  return mode;
-}
-
-String getText()
-{
-  return text;
-}
-
-int getRpm()
-{
-  return rpm;
-}
-
-int getNumUnits()
-{
-  return numUnits;
-}
-
-String getWrittenLast()
-{
-  return writtenLast;
-}
-
-void setWrittenLast(String message)
-{
-  writtenLast = message;
-}
-
-UnitState *getUnitStatesStaged()
-{
-  return unitStatesStaged;
-}
-
-void loadMainValues()
-{
-  // Load values saved in NVS
-  prefs.begin(APP_NAME_SHORT, true);
-  alignment = prefs.getString(PARAM_ALIGNMENT, "left");
-  rpm = prefs.getInt(PARAM_RPM, 10);
-  mode = prefs.getString(PARAM_MODE, "text");
-  numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
-}
-
-String getMainValues()
-{
-  values[PARAM_ALIGNMENT] = alignment;
-  values[PARAM_RPM] = rpm;
-  values[PARAM_MODE] = mode;
-  values[PARAM_NUM_UNITS] = numUnits;
-  values[PARAM_TEXT] = text;
-
-  String jsonString = JSON.stringify(values);
-  return jsonString;
-}
-
-// Initialize WiFi in STA mode
+/**
+ * @caller initWiFi()
+ * @purpose Initialize WiFi in STA mode
+ */
 bool initWiFiSTA()
 {
   WiFi.mode(WIFI_STA);
@@ -133,24 +19,18 @@ bool initWiFiSTA()
   WiFi.hostname(hostname.c_str());
   String ssid;
   String password;
-  prefs.begin(APP_NAME_SHORT, true);
-  ssid = prefs.getString("ssid", "");
-  password = prefs.getString("password", "");
-  String ipAssignment = prefs.getString("ipAssignment", "dynamic");
+  ssid = getNvsString("ssid", "");
+  password = getNvsString("password", "");
+  String ipAssignment = getNvsString("ipAssignment", "dynamic");
   bool useStaticIP = ipAssignment == "static";
-  prefs.end();
   if (useStaticIP)
   {
-    prefs.begin(APP_NAME_SHORT, true);
-    String localIpStr = prefs.getString("localIp", "192.168.10.123");
-    String gatewayStr = prefs.getString("gateway", "192.168.10.1");
-    String subnetStr = prefs.getString("subnet", "255.255.255.0");
-    prefs.end();
-#ifdef serial
+    String localIpStr = getNvsString("localIp", "192.168.10.123");
+    String gatewayStr = getNvsString("gateway", "192.168.10.1");
+    String subnetStr = getNvsString("subnet", "255.255.255.0");
     localIpStr = String("192.168.10.123");
     Serial.print("Setting static IP address to ");
     Serial.println(localIpStr);
-#endif
     IPAddress localIp(localIpStr.c_str());
     IPAddress gateway(gatewayStr.c_str());
     IPAddress subnet(subnetStr.c_str());
@@ -182,7 +62,10 @@ bool initWiFiSTA()
   return true;
 }
 
-// Initialize WiFi in AP mode
+/**
+ * @caller initWiFi()
+ * @purpose Initialize WiFi in AP mode
+ */
 bool initWiFiAP()
 {
   WiFi.mode(WIFI_AP);
@@ -193,7 +76,10 @@ bool initWiFiAP()
   return WiFi.softAPConfig(IPAddress(192, 168, 10, 123), IPAddress(192, 168, 10, 123), IPAddress(255, 255, 255, 0));
 }
 
-// Initialize WiFi in AP or STA mode
+/**
+ * @caller setup() and loop() in ESP.ino
+ * @purpose Initialize WiFi in the specified operation mode
+ */
 int initWiFi(int requestedOperationMode)
 {
   bool success = false;
