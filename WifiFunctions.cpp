@@ -1,47 +1,16 @@
+#include <Arduino.h>
 #include <Arduino_JSON.h>
+#include <WiFi.h>
 #include "WifiFunctions.h"
 #include "utils.h"
 #include "nvsUtils.h"
 #include "env.h"
 #include "files.h"
 
-// Variables to save values from HTML form
-UnitState unitStatesStaged[MAX_NUM_UNITS];
-
-void setUnitStatesStaged(UnitState *unitStates)
-{
-  for (int i = 0; i < MAX_NUM_UNITS; i++)
-  {
-    unitStatesStaged[i] = unitStates[i];
-  }
-}
-
-UnitState *getUnitStatesStaged()
-{
-  return unitStatesStaged;
-}
-
-String getMainValues()
-{
-  JSONVar values;
-
-  String alignment = getNvsString(PARAM_ALIGNMENT, "left");
-  int rpm = getNvsInt(PARAM_RPM, 10);
-  String mode = getNvsString(PARAM_MODE, "text");
-  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
-  String text = getNvsString(PARAM_TEXT, "");
-
-  values[PARAM_ALIGNMENT] = alignment;
-  values[PARAM_RPM] = rpm;
-  values[PARAM_MODE] = mode;
-  values[PARAM_NUM_UNITS] = numUnits;
-  values[PARAM_TEXT] = text;
-
-  String jsonString = JSON.stringify(values);
-  return jsonString;
-}
-
-// Initialize WiFi in STA mode
+/**
+ * @caller initWiFi()
+ * @purpose Initialize WiFi in STA mode
+ */
 bool initWiFiSTA()
 {
   WiFi.mode(WIFI_STA);
@@ -93,7 +62,10 @@ bool initWiFiSTA()
   return true;
 }
 
-// Initialize WiFi in AP mode
+/**
+ * @caller initWiFi()
+ * @purpose Initialize WiFi in AP mode
+ */
 bool initWiFiAP()
 {
   WiFi.mode(WIFI_AP);
@@ -104,7 +76,10 @@ bool initWiFiAP()
   return WiFi.softAPConfig(IPAddress(192, 168, 10, 123), IPAddress(192, 168, 10, 123), IPAddress(255, 255, 255, 0));
 }
 
-// Initialize WiFi in AP or STA mode
+/**
+ * @caller setup() and loop() in ESP.ino
+ * @purpose Initialize WiFi in the specified operation mode
+ */
 int initWiFi(int requestedOperationMode)
 {
   bool success = false;

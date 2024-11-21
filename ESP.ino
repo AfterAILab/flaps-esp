@@ -15,6 +15,7 @@
 #include "Timezone.h"
 #include "FlapFunctions.h"
 #include "nvsUtils.h"
+#include "files.h"
 #include "I2C.h"
 #include "morseCode.h"
 
@@ -66,75 +67,103 @@ void setup()
 
   server.on("/main", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-      String json = getMainValues();
-      request->send(200, "application/json", json); });
+    JSONVar values;
+
+    String alignment = getNvsString(PARAM_ALIGNMENT, "left");
+    int rpm = getNvsInt(PARAM_RPM, 10);
+    String mode = getNvsString(PARAM_MODE, "text");
+    int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
+    String text = getNvsString(PARAM_TEXT, "");
+
+    values[PARAM_ALIGNMENT] = alignment;
+    values[PARAM_RPM] = rpm;
+    values[PARAM_MODE] = mode;
+    values[PARAM_NUM_UNITS] = numUnits;
+    values[PARAM_TEXT] = text;
+
+    String jsonString = JSON.stringify(values);
+    request->send(200, "application/json", jsonString); });
 
   server.on("/main", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
             {
-        String jsonString = String((char*)data).substring(0, len);
-        JSONVar jsonObj = JSON.parse(jsonString);
+    String jsonInputString = String((char*)data).substring(0, len);
+    JSONVar jsonObj = JSON.parse(jsonInputString);
 
-        if (JSON.typeof(jsonObj) == "undefined") {
-            Serial.println("Parsing input failed!");
-            request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
-            return;
-        }
-        // Print key-value pairs of the JSON object
-        for (int i = 0; i < jsonObj.length(); i++) {
-            Serial.print(jsonObj.keys()[i]);
-        }
-       // Print the stringified JSON object
-        Serial.println(jsonString);
+  if (JSON.typeof(jsonObj) == "undefined") {
+      Serial.println("Parsing input failed!");
+      request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+      return;
+  }
+  // Print key-value pairs of the JSON object
+  for (int i = 0; i < jsonObj.length(); i++) {
+      Serial.print(jsonObj.keys()[i]);
+  }
+  // Print the stringified JSON object
+  Serial.println(jsonInputString);
 
-        if (jsonObj.hasOwnProperty(PARAM_ALIGNMENT)) {
-            putNvsString(PARAM_ALIGNMENT, (const char*) jsonObj[PARAM_ALIGNMENT]);
-            Serial.print("Alignment set to: ");
-            String alignment = getNvsString(PARAM_ALIGNMENT);
-            Serial.println(alignment);
-        }
+  if (jsonObj.hasOwnProperty(PARAM_ALIGNMENT)) {
+      putNvsString(PARAM_ALIGNMENT, (const char*) jsonObj[PARAM_ALIGNMENT]);
+      Serial.print("Alignment set to: ");
+      String alignment = getNvsString(PARAM_ALIGNMENT);
+      Serial.println(alignment);
+  }
 
-        if (jsonObj.hasOwnProperty("rpm")) {
-            JSONVar rpm = jsonObj["rpm"];
-            if (JSON.typeof(rpm) == "number") {
-                // Process the rpm value
-                Serial.print("rpm set to: ");
-                Serial.println(rpm);
-                putNvsInt("rpm", rpm);
-            } else {
-                Serial.println("rpm is not a valid number.");
-                request->send(400, "application/json", "{\"error\":\"rpm must be a number\"}");
-                return;
-            }
-        }
+  if (jsonObj.hasOwnProperty("rpm")) {
+      JSONVar rpm = jsonObj["rpm"];
+      if (JSON.typeof(rpm) == "number") {
+          // Process the rpm value
+          Serial.print("rpm set to: ");
+          Serial.println(rpm);
+          putNvsInt("rpm", rpm);
+      } else {
+          Serial.println("rpm is not a valid number.");
+          request->send(400, "application/json", "{\"error\":\"rpm must be a number\"}");
+          return;
+      }
+  }
 
-        if (jsonObj.hasOwnProperty("mode")) {
-            putNvsString("mode", (const char*) jsonObj["mode"]);
-            Serial.print("Mode set to: ");
-            Serial.println(getNvsString("mode"));
-        }
+  if (jsonObj.hasOwnProperty("mode")) {
+      putNvsString("mode", (const char*) jsonObj["mode"]);
+      Serial.print("Mode set to: ");
+      Serial.println(getNvsString("mode"));
+  }
 
-        if (jsonObj.hasOwnProperty(PARAM_NUM_UNITS)) {
-            JSONVar numUnits = jsonObj[PARAM_NUM_UNITS];
-            if (JSON.typeof(numUnits) == "number") {
-                // Process the numUnits value
-                Serial.print("numUnits set to: ");
-                Serial.println(numUnits);
-                putNvsInt(PARAM_NUM_UNITS, numUnits);
-            } else {
-                Serial.println("numUnits is not a valid number.");
-                request->send(400, "application/json", "{\"error\":\"numUnits must be a number\"}");
-                return;
-            }
-        }
+  if (jsonObj.hasOwnProperty(PARAM_NUM_UNITS)) {
+      JSONVar numUnits = jsonObj[PARAM_NUM_UNITS];
+      if (JSON.typeof(numUnits) == "number") {
+          // Process the numUnits value
+          Serial.print("numUnits set to: ");
+          Serial.println(numUnits);
+          putNvsInt(PARAM_NUM_UNITS, numUnits);
+      } else {
+          Serial.println("numUnits is not a valid number.");
+          request->send(400, "application/json", "{\"error\":\"numUnits must be a number\"}");
+          return;
+      }
+  }
 
-        if (jsonObj.hasOwnProperty("text")) {
-            putNvsString("text", (const char*) jsonObj["text"]);
-            Serial.print("Input 1 set to: ");
-            Serial.println(getNvsString("text"));
-        }
+  if (jsonObj.hasOwnProperty("text")) {
+      putNvsString("text", (const char*) jsonObj["text"]);
+      Serial.print("Input 1 set to: ");
+      Serial.println(getNvsString("text"));
+  }
 
-        String jsonResponse = getMainValues();
-        request->send(200, "application/json", jsonResponse); });
+  JSONVar values;
+
+  String alignment = getNvsString(PARAM_ALIGNMENT, "left");
+  int rpm = getNvsInt(PARAM_RPM, 10);
+  String mode = getNvsString(PARAM_MODE, "text");
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
+  String text = getNvsString(PARAM_TEXT, "");
+
+  values[PARAM_ALIGNMENT] = alignment;
+  values[PARAM_RPM] = rpm;
+  values[PARAM_MODE] = mode;
+  values[PARAM_NUM_UNITS] = numUnits;
+  values[PARAM_TEXT] = text;
+
+  String jsonOutputString = JSON.stringify(values);
+  request->send(200, "application/json", jsonOutputString); });
 
   server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -278,7 +307,7 @@ void setup()
         jsonString = "";
 
         // Main processing
-        UnitState *unitStates = getUnitStatesStaged();
+        UnitState *pendingUpdates = getPendingUpdates();
 
         if (JSON.typeof(jsonObj) == "undefined") {
             Serial.println("Parsing input failed!");
@@ -307,9 +336,9 @@ void setup()
           }
 
           if (unitAddr != -1 && offset != -1 && magneticZeroPositionLetterIndex != -1) {
-              unitStates[unitAddr].unitAddr = unitAddr;
-              unitStates[unitAddr].offset = offset;
-              unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
+              pendingUpdates[unitAddr].unitAddr = unitAddr;
+              pendingUpdates[unitAddr].offset = offset;
+              pendingUpdates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
           } else {
               Serial.println("Invalid unit address, offset or magneticZeroPositionLetterIndex");
               Serial.print("Unit address: ");
@@ -321,13 +350,12 @@ void setup()
           }
         }
         unitUpdateFlag = true;
-        setUnitStates(unitStates);
-        updateUnitStatesStringCache();
+        setPendingUpdates(pendingUpdates);
 
         AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
                                           [](uint8_t* buffer, size_t maxLen, size_t index)
         {
-          String jsonStringCache = getUnitStatesStringCache();
+          String jsonStringCache = getPendingUpdatesSerialized();
           const char* jsonCChar = jsonStringCache.c_str();
           if (strlen(jsonCChar) <= index)
           {
@@ -348,7 +376,6 @@ void setup()
 
   server.on("/unit", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-    updateUnitStatesStringCache();
     // Return all the unit states in JSON format
     // Responding with chunks is necessary to send large data with AsyncWebServer
     // However, this impelmentation is not working as expected for MAX_NUM_UNITS=256
@@ -356,7 +383,7 @@ void setup()
     AsyncWebServerResponse* response = request->beginChunkedResponse("application/json",
                                       [](uint8_t* buffer, size_t maxLen, size_t index)
     {
-      String jsonStringCache = getUnitStatesStringCache();
+      String jsonStringCache = getPendingUpdatesSerialized();
       const char* jsonCChar = jsonStringCache.c_str();
       if (strlen(jsonCChar) <= index)
       {
@@ -437,8 +464,6 @@ void loop()
       Serial.printf("Is I2C bus recover success: %s\n", isRecovered ? "true" : "false");
     }
 
-    fetchAndSetUnitStates();
-
     if (operationMode == OPERATION_MODE_STA)
     {
       events(); // ezTime library function.
@@ -450,9 +475,10 @@ void loop()
       // Make sure that the display is on the home position
       putNvsString("mode", "text");
       putNvsString("text", " ");
-      commitStagedUnitStates();
-      fetchAndSetUnitStates();
+      applyPendingUpdates();
     }
+
+    fetchAndSetUnitStates();
 
     // Mode Selection
     String mode = getNvsString("mode");
@@ -490,7 +516,7 @@ void loop()
     }
     }
     Serial.print("Magnet: ");
-    UnitState *unitStates = getUnitStates();
+    UnitState *unitStates = getFetchedStates();
     for (int i = 0; i < getNvsInt(PARAM_NUM_UNITS); i++)
     {
       if (i == 0)
@@ -569,11 +595,10 @@ void loop()
         sscanf(input.c_str(), "offset %d %d", &unitAddr, &offset);
         if (unitAddr != -1 && offset != -1)
         {
-          UnitState *unitStates = getUnitStates();
+          UnitState *unitStates = getFetchedStates();
           unitStates[unitAddr].offset = offset;
           unitUpdateFlag = true;
-          setUnitStatesStaged(unitStates);
-          updateUnitStatesStringCache();
+          setPendingUpdates(unitStates);
           return;
         }
       }
@@ -592,12 +617,11 @@ void loop()
         if (unitAddr != -1 && magneticZeroPositionLetterIndex != -1)
         {
           int suggestedOffset = getSuggestedOffset(magneticZeroPositionLetterIndex);
-          UnitState *unitStates = getUnitStates();
+          UnitState *unitStates = getFetchedStates();
           unitStates[unitAddr].magneticZeroPositionLetterIndex = magneticZeroPositionLetterIndex;
           unitStates[unitAddr].offset = suggestedOffset;
           unitUpdateFlag = true;
-          setUnitStatesStaged(unitStates);
-          updateUnitStatesStringCache();
+          setPendingUpdates(unitStates);
           return;
         }
       }

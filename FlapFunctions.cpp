@@ -8,9 +8,20 @@
 #include "nvsUtils.h"
 
 /**
- * @purpose Maintain all unit states as a global variablef
+ * @purpose Maintain all unit states as a global variable
  */
-UnitState unitStates[MAX_NUM_UNITS];
+UnitState fetchedStates[MAX_NUM_UNITS];
+
+/**
+ * @purpose Maintain scratchpad for unit states as a global variable
+ */ 
+UnitState pendingUpdates[MAX_NUM_UNITS];
+
+/**
+ * @purpose Save time from a web API request handler to serialize the unit states in a JSON string, otherwise it times out
+ */
+String pendingUpdatesSerialized = "";
+
 
 /**
  * @purpose The user set current time of the day in minutes
@@ -22,19 +33,41 @@ int offlineClockBasisInMinutes = 0;
  */
 unsigned long offlineClockBasisSetAt = 0;
 
-// This function is not called directly from the /offset POST handler, but from inside the main loop
-// It is due to the fact that the /offset POST handler cannot afford the time of calling Wire.beginTransmission() and Wire.endTransmission()
-void commitStagedUnitStates()
+/**
+ * @caller Offline mode offset setting handler and magnet setting handler
+ * @purpose Quickly write to the scratchpad of unit states. Update the pending updates serialized string cache, too.
+ */
+void setPendingUpdates(UnitState *desiredUnitStates)
 {
-  UnitState *stagedUnitStates = getUnitStatesStaged();
+  for (int i = 0; i < MAX_NUM_UNITS; i++)
+  {
+    pendingUpdates[i] = desiredUnitStates[i];
+  }
+  updatePendingUpdatesSerialized();
+}
 
+/**
+ * @caller POST /unit handler
+ * @purpose Get a scratchpad for unit states
+ */
+UnitState *getPendingUpdates()
+{
+  return pendingUpdates;
+}
+
+/**
+ * @caller loop() in ESP.ino
+ * @purpose Apply the scratchpad of unit states to the actual unit states when ESP has enough time, i.e. not in the middle of an web API handling but in the main loop.
+ */
+void applyPendingUpdates()
+{
   int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
 
   for (int i = 0; i < numUnits; i++)
   {
-    int address = stagedUnitStates[i].unitAddr;
-    int offset = stagedUnitStates[i].offset;
-    int magneticZeroPositionLetterUpdateIndex = stagedUnitStates[i].magneticZeroPositionLetterIndex;
+    int address = pendingUpdates[i].unitAddr;
+    int offset = pendingUpdates[i].offset;
+    int magneticZeroPositionLetterUpdateIndex = pendingUpdates[i].magneticZeroPositionLetterIndex;
 
     Serial.printf("Updating unit %d\n", address);
     Wire.beginTransmission(address);
@@ -162,7 +195,7 @@ void showOfflineClock()
 
 /**
  * @caller fetchAndSetUnitStates()
- * @purpose Fetch the state from a flap unit by I2C request and update the global unitStates array
+ * @purpose Fetch the state from a flap unit by I2C request and update the global fetchedStates array, the scratchpad for unit states, and the serialized string cache
  */
 UnitState fetchUnitState(int unitAddr)
 {
@@ -171,11 +204,11 @@ UnitState fetchUnitState(int unitAddr)
   if (bytesRead != ANSWER_SIZE)
   {
     Serial.printf("Failed to read from unit %d, bytesRead: %d\n", unitAddr, bytesRead);
-    return unitStates[unitAddr];
+    return fetchedStates[unitAddr];
   }
   // rotationRaw is, -1 = not connected, 0 = not rotating, 1 = rotating
   int rotatingRaw = Wire.read();
-  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? unitStates[unitAddr].lastResponseAtMillis : millis();
+  unsigned long lastResponseAtMillis = rotatingRaw == -1 ? fetchedStates[unitAddr].lastResponseAtMillis : millis();
   bool rotating = rotatingRaw == 1;
   int offsetMSB = Wire.read();
   int offsetLSB = Wire.read();
@@ -186,21 +219,17 @@ UnitState fetchUnitState(int unitAddr)
 
 /**
  * @caller loop() in ESP.ino
- * @purpose Fetch the state from all flap units by I2C requests and update the global unitStates array
+ * @purpose Fetch the state from all flap units by I2C requests and update the global fetchedStates array
  */
 void fetchAndSetUnitStates()
 {
   int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   for (int i = 0; i < numUnits; i++)
   {
-    unitStates[i] = fetchUnitState(i);
+    fetchedStates[i] = fetchUnitState(i);
   }
+  setPendingUpdates(fetchedStates);
 }
-
-/**
- * @purpose Save time from a web API request handler to serialize the unit states in a JSON string, otherwise it times out
- */
-String unitStatesStringCache = "";
 
 /**
  * @caller loop() in ESP.ino
@@ -208,28 +237,16 @@ String unitStatesStringCache = "";
  * - Log magnetic zero position letter index for each unit
  * - Update the global unitStates array, stage it for commit, and update the string cache
  */
-UnitState *getUnitStates()
+UnitState *getFetchedStates()
 {
-  return unitStates;
-}
-
-/**
- * @caller setup() in ESP.ino
- * @purpose Set the global unitStates array
- */
-void setUnitStates(UnitState *states)
-{
-  for (int i = 0; i < MAX_NUM_UNITS; i++)
-  {
-    unitStates[i] = states[i];
-  }
+  return fetchedStates;
 }
 
 /**
  * @caller loop() in ESP.ino
- * @purpose Update the JSON string cache of the unit states
+ * @purpose Update the JSON string cache of the pending updates
  */
-void updateUnitStatesStringCache()
+void updatePendingUpdatesSerialized()
 {
   JSONVar j;
   int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
@@ -242,26 +259,26 @@ void updateUnitStatesStringCache()
   {
     for (int i = 0; i < numUnits; i++)
     {
-      UnitState unitState = unitStates[i];
-      j["avrs"][i]["unitAddr"] = unitState.unitAddr;
-      j["avrs"][i]["rotating"] = unitState.rotating;
-      j["avrs"][i]["magneticZeroPositionLetterIndex"] = unitState.magneticZeroPositionLetterIndex;
-      j["avrs"][i]["offset"] = unitState.offset;
-      j["avrs"][i]["lastResponseAtMillis"] = unitState.lastResponseAtMillis;
+      UnitState pendingUpdate = pendingUpdates[i];
+      j["avrs"][i]["unitAddr"] = pendingUpdate.unitAddr;
+      j["avrs"][i]["rotating"] = pendingUpdate.rotating;
+      j["avrs"][i]["magneticZeroPositionLetterIndex"] = pendingUpdate.magneticZeroPositionLetterIndex;
+      j["avrs"][i]["offset"] = pendingUpdate.offset;
+      j["avrs"][i]["lastResponseAtMillis"] = pendingUpdate.lastResponseAtMillis;
     }
   }
   j["esp"]["currentMillis"] = millis();
   Serial.printf("Current millis: %d\n", millis());
-  unitStatesStringCache = JSON.stringify(j);
+  pendingUpdatesSerialized = JSON.stringify(j);
 }
 
 /**
  * @caller loop() in ESP.ino
  * @purpose Quickly get the JSON string of the unit states
  */
-String getUnitStatesStringCache()
+String getPendingUpdatesSerialized()
 {
-  return unitStatesStringCache;
+  return pendingUpdatesSerialized;
 }
 
 /**
@@ -275,7 +292,7 @@ String getOffsetsInString()
   int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   for (int i = 0; i < numUnits; i++)
   {
-    offsetString += String(unitStates[i].offset);
+    offsetString += String(pendingUpdates[i].offset);
     if (i < numUnits - 1)
     {
       offsetString += ",";
