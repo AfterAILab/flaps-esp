@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <prefs.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -15,6 +14,7 @@
 #include "WifiFunctions.h"
 #include "Timezone.h"
 #include "FlapFunctions.h"
+#include "nvsUtils.h"
 #include "I2C.h"
 #include "morseCode.h"
 
@@ -40,13 +40,6 @@ void setup()
   operationMode = initWiFi(OPERATION_MODE_STA); // initializes WiFi
   flashMorseCode(String(operationMode));
   initFS(); // initializes filesystem
-#ifdef serial
-  Serial.println("Loading main values");
-#endif
-  loadMainValues();
-#ifdef serial
-  Serial.println("Main values loaded");
-#endif
 
   // ezTime initialization
   if (operationMode == OPERATION_MODE_STA)
@@ -93,10 +86,11 @@ void setup()
        // Print the stringified JSON object
         Serial.println(jsonString);
 
-        if (jsonObj.hasOwnProperty("alignment")) {
-            writeThroughAlignment((const char*) jsonObj["alignment"]);
+        if (jsonObj.hasOwnProperty(PARAM_ALIGNMENT)) {
+            putNvsString(PARAM_ALIGNMENT, (const char*) jsonObj[PARAM_ALIGNMENT]);
             Serial.print("Alignment set to: ");
-            Serial.println(getAlignment());
+            String alignment = getNvsString(PARAM_ALIGNMENT);
+            Serial.println(alignment);
         }
 
         if (jsonObj.hasOwnProperty("rpm")) {
@@ -105,7 +99,7 @@ void setup()
                 // Process the rpm value
                 Serial.print("rpm set to: ");
                 Serial.println(rpm);
-                writeThroughRpm(rpm);
+                putNvsInt("rpm", rpm);
             } else {
                 Serial.println("rpm is not a valid number.");
                 request->send(400, "application/json", "{\"error\":\"rpm must be a number\"}");
@@ -114,9 +108,9 @@ void setup()
         }
 
         if (jsonObj.hasOwnProperty("mode")) {
-            writeThroughMode((const char*) jsonObj["mode"]);
+            putNvsString("mode", (const char*) jsonObj["mode"]);
             Serial.print("Mode set to: ");
-            Serial.println(getMode());
+            Serial.println(getNvsString("mode"));
         }
 
         if (jsonObj.hasOwnProperty(PARAM_NUM_UNITS)) {
@@ -125,7 +119,7 @@ void setup()
                 // Process the numUnits value
                 Serial.print("numUnits set to: ");
                 Serial.println(numUnits);
-                writeThroughNumUnits(numUnits);
+                putNvsInt(PARAM_NUM_UNITS, numUnits);
             } else {
                 Serial.println("numUnits is not a valid number.");
                 request->send(400, "application/json", "{\"error\":\"numUnits must be a number\"}");
@@ -134,9 +128,9 @@ void setup()
         }
 
         if (jsonObj.hasOwnProperty("text")) {
-            setText((const char*) jsonObj["text"]);
+            putNvsString("text", (const char*) jsonObj["text"]);
             Serial.print("Input 1 set to: ");
-            Serial.println(getText());
+            Serial.println(getNvsString("text"));
         }
 
         String jsonResponse = getMainValues();
@@ -145,15 +139,13 @@ void setup()
   server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request)
             {
       JSONVar j;
-      prefs.begin(APP_NAME_SHORT, true);
-      j["ssid"] = prefs.getString("ssid");
-      // json["password"] = prefs.getString("password");
-      j["ipAssignment"] = prefs.getString("ipAssignment", "dynamic");
-      j["ip"] = prefs.getString("ip");
-      j["subnet"] = prefs.getString("subnet");
-      j["gateway"] = prefs.getString("gateway");
-      j["dns"] = prefs.getString("dns");
-      prefs.end();
+      j["ssid"] = getNvsString("ssid");
+      // json["password"] = getNvsString("password");
+      j["ipAssignment"] = getNvsString("ipAssignment", "dynamic");
+      j["ip"] = getNvsString("ip");
+      j["subnet"] = getNvsString("subnet");
+      j["gateway"] = getNvsString("gateway");
+      j["dns"] = getNvsString("dns");
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
 
@@ -169,66 +161,48 @@ void setup()
         }
 
         if (jsonObj.hasOwnProperty("ssid")) {
-            prefs.begin(APP_NAME_SHORT, false);
-            prefs.putString("ssid", (const char*) jsonObj["ssid"]);
-            prefs.end();
+            putNvsString("ssid", (const char*) jsonObj["ssid"]);
         }
 
         if (jsonObj.hasOwnProperty("password")) {
-            prefs.begin(APP_NAME_SHORT, false);
-            prefs.putString("password", (const char*) jsonObj["password"]);
-            prefs.end();
+            putNvsString("password", (const char*) jsonObj["password"]);
         }
 
         if (jsonObj.hasOwnProperty("ipAssignment")) {
-          prefs.begin(APP_NAME_SHORT, false);
-          prefs.putString("ipAssignment", (const char*) jsonObj["ipAssignment"]);
-          prefs.end();
+          putNvsString("ipAssignment", (const char*) jsonObj["ipAssignment"]);
         }
 
-        prefs.begin(APP_NAME_SHORT, true);
-        String ipAssignment = prefs.getString("ipAssignment", "dynamic");
-        prefs.end();
+        String ipAssignment = getNvsString("ipAssignment", "dynamic");
         bool isStatic = ipAssignment == "static";
 
         // ip
         if (isStatic && jsonObj.hasOwnProperty("ip")) {
-          prefs.begin(APP_NAME_SHORT, false);
-          prefs.putString("ip", (const char*) jsonObj["ip"]);
-          prefs.end();
+          putNvsString("ip", (const char*) jsonObj["ip"]);
         }
 
         // subnet
         if (isStatic && jsonObj.hasOwnProperty("subnet")) {
-          prefs.begin(APP_NAME_SHORT, false);
-          prefs.putString("subnet", (const char*) jsonObj["subnet"]);
-          prefs.end();
+          putNvsString("subnet", (const char*) jsonObj["subnet"]);
         }
 
         // gateway
         if (isStatic && jsonObj.hasOwnProperty("gateway")) {
-          prefs.begin(APP_NAME_SHORT, false);
-          prefs.putString("gateway", (const char*) jsonObj["gateway"]);
-          prefs.end();
+          putNvsString("gateway", (const char*) jsonObj["gateway"]);
         }
 
         // DNS
         if (isStatic && jsonObj.hasOwnProperty("dns")) {
-          prefs.begin(APP_NAME_SHORT, false);
-          prefs.putString("dns", (const char*) jsonObj["dns"]);
-          prefs.end();
+          putNvsString("dns", (const char*) jsonObj["dns"]);
         }
 
         JSONVar j;
-        prefs.begin(APP_NAME_SHORT, false);
-        j["ssid"] = prefs.getString("ssid");
-        j["password"] = prefs.getString("password");
-        j["ipAssignment"] = prefs.getString("ipAssignment");
-        j["ip"] = prefs.getString("ip");
-        j["subnet"] = prefs.getString("subnet");
-        j["gateway"] = prefs.getString("gateway");
-        j["dns"] = prefs.getString("dns");
-        prefs.end();
+        j["ssid"] = getNvsString("ssid");
+        j["password"] = getNvsString("password");
+        j["ipAssignment"] = getNvsString("ipAssignment");
+        j["ip"] = getNvsString("ip");
+        j["subnet"] = getNvsString("subnet");
+        j["gateway"] = getNvsString("gateway");
+        j["dns"] = getNvsString("dns");
 
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
@@ -236,12 +210,10 @@ void setup()
   server.on("/misc", HTTP_GET, [](AsyncWebServerRequest *request)
             {
       JSONVar j;
-      prefs.begin(APP_NAME_SHORT, true);
-      j["timezone"] = prefs.getString("timezone");
+      j["timezone"] = getNvsString("timezone");
       j[PARAM_NUM_I2C_BUS_STUCK] = getNumI2CBusStuck();
       unsigned long maxUnsignedLong = 0xFFFFFFFF;
       j["lastI2CBusStuckAgoInMillis"] = getLastI2CBusStuckAtMillis() == 0 ? 0 : (millis() - getLastI2CBusStuckAtMillis()) % maxUnsignedLong;
-      prefs.end();
       String json = JSON.stringify(j);
       request->send(200, "application/json", json); });
 
@@ -259,16 +231,12 @@ void setup()
         if (jsonObj.hasOwnProperty("timezone")) {
             Serial.print("Setting timezone: ");
             Serial.println((const char*) jsonObj["timezone"]);
-            prefs.begin(APP_NAME_SHORT, false);
-            prefs.putString("timezone", (const char*) jsonObj["timezone"]);
-            prefs.end();
+            putNvsString("timezone", (const char*) jsonObj["timezone"]);
             applyUserTimezone();
         }
 
         JSONVar j;
-        prefs.begin(APP_NAME_SHORT, true);
-        j["timezone"] = prefs.getString("timezone");
-        prefs.end();
+        j["timezone"] = getNvsString("timezone");
         String jsonResponse = JSON.stringify(j);
         request->send(200, "application/json", jsonResponse); });
 
@@ -480,16 +448,16 @@ void loop()
     {
       unitUpdateFlag = false;
       // Make sure that the display is on the home position
-      writeThroughMode("text");
-      setText(" ");
+      putNvsString("mode", "text");
+      putNvsString("text", " ");
       commitStagedUnitStates();
       fetchAndSetUnitStates();
     }
 
     // Mode Selection
-    String mode = getMode();
-    String alignment = getAlignment();
-    int rpm = getRpm();
+    String mode = getNvsString("mode");
+    String alignment = getNvsString(PARAM_ALIGNMENT);
+    int rpm = getNvsInt("rpm");
     switch (operationMode)
     {
     case OPERATION_MODE_STA:
@@ -523,14 +491,14 @@ void loop()
     }
     Serial.print("Magnet: ");
     UnitState *unitStates = getUnitStates();
-    for (int i = 0; i < getNumUnits(); i++)
+    for (int i = 0; i < getNvsInt(PARAM_NUM_UNITS); i++)
     {
       if (i == 0)
       {
         Serial.print("[");
       }
       Serial.print(translateIndextoLetter(unitStates[i].magneticZeroPositionLetterIndex));
-      if (i == getNumUnits() - 1)
+      if (i == getNvsInt(PARAM_NUM_UNITS) - 1)
       {
         Serial.printf("]\n");
       }
@@ -550,35 +518,35 @@ void loop()
       {
         if (input.endsWith("text"))
         {
-          writeThroughMode("text");
+          putNvsString("mode", "text");
           return;
         }
         else if (input.endsWith("date"))
         {
-          writeThroughMode("date");
+          putNvsString("mode", "date");
           return;
         }
         else if (input.endsWith("clock"))
         {
-          writeThroughMode("clock");
+          putNvsString("mode", "clock");
           return;
         }
       }
-      if (input.startsWith("alignment"))
+      if (input.startsWith(PARAM_ALIGNMENT))
       {
         if (input.endsWith("left"))
         {
-          writeThroughAlignment("left");
+          putNvsString(PARAM_ALIGNMENT, "left");
           return;
         }
         else if (input.endsWith("right"))
         {
-          writeThroughAlignment("right");
+          putNvsString(PARAM_ALIGNMENT, "right");
           return;
         }
         else if (input.endsWith("center"))
         {
-          writeThroughAlignment("center");
+          putNvsString(PARAM_ALIGNMENT, "center");
           return;
         }
       }
@@ -588,7 +556,7 @@ void loop()
         sscanf(input.c_str(), "rpm %d", &rpm);
         if (0 < rpm && rpm <= 12)
         {
-          writeThroughRpm(rpm);
+          putNvsInt("rpm", rpm);
           return;
         }
       }
@@ -642,12 +610,12 @@ void loop()
         return;
       }
 
-      setText(input);
+      putNvsString("text", input);
     }
 
     if (mode == "text")
     {
-      showMessage(getText());
+      showMessage(getNvsString("text"));
     }
     if (mode == "date")
     {

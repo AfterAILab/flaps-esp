@@ -1,57 +1,12 @@
 #include <Arduino_JSON.h>
 #include "WifiFunctions.h"
 #include "utils.h"
-#include "prefs.h"
-#include "LittleFS.h"
+#include "nvsUtils.h"
 #include "env.h"
 #include "files.h"
 
-JSONVar values;
 // Variables to save values from HTML form
-String writtenLast;
-String alignment;
-int rpm;
-String mode;
-int numUnits;
-String text;
 UnitState unitStatesStaged[MAX_NUM_UNITS];
-
-void writeThroughAlignment(String message)
-{
-  alignment = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putString(PARAM_ALIGNMENT, alignment);
-  prefs.end();
-}
-
-void writeThroughRpm(int message)
-{
-  rpm = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt(PARAM_RPM, rpm);
-  prefs.end();
-}
-
-void writeThroughMode(String message)
-{
-  mode = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putString(PARAM_MODE, mode);
-  prefs.end();
-}
-
-void writeThroughNumUnits(int message)
-{
-  numUnits = message;
-  prefs.begin(APP_NAME_SHORT, false);
-  prefs.putInt(PARAM_NUM_UNITS, numUnits);
-  prefs.end();
-}
-
-void setText(String message)
-{
-  text = message;
-}
 
 void setUnitStatesStaged(UnitState *unitStates)
 {
@@ -61,59 +16,21 @@ void setUnitStatesStaged(UnitState *unitStates)
   }
 }
 
-String getAlignment()
-{
-  return alignment;
-}
-
-String getMode()
-{
-  return mode;
-}
-
-String getText()
-{
-  return text;
-}
-
-int getRpm()
-{
-  return rpm;
-}
-
-int getNumUnits()
-{
-  return numUnits;
-}
-
-String getWrittenLast()
-{
-  return writtenLast;
-}
-
-void setWrittenLast(String message)
-{
-  writtenLast = message;
-}
-
 UnitState *getUnitStatesStaged()
 {
   return unitStatesStaged;
 }
 
-void loadMainValues()
-{
-  // Load values saved in NVS
-  prefs.begin(APP_NAME_SHORT, true);
-  alignment = prefs.getString(PARAM_ALIGNMENT, "left");
-  rpm = prefs.getInt(PARAM_RPM, 10);
-  mode = prefs.getString(PARAM_MODE, "text");
-  numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
-}
-
 String getMainValues()
 {
+  JSONVar values;
+
+  String alignment = getNvsString(PARAM_ALIGNMENT, "left");
+  int rpm = getNvsInt(PARAM_RPM, 10);
+  String mode = getNvsString(PARAM_MODE, "text");
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
+  String text = getNvsString(PARAM_TEXT, "");
+
   values[PARAM_ALIGNMENT] = alignment;
   values[PARAM_RPM] = rpm;
   values[PARAM_MODE] = mode;
@@ -133,24 +50,18 @@ bool initWiFiSTA()
   WiFi.hostname(hostname.c_str());
   String ssid;
   String password;
-  prefs.begin(APP_NAME_SHORT, true);
-  ssid = prefs.getString("ssid", "");
-  password = prefs.getString("password", "");
-  String ipAssignment = prefs.getString("ipAssignment", "dynamic");
+  ssid = getNvsString("ssid", "");
+  password = getNvsString("password", "");
+  String ipAssignment = getNvsString("ipAssignment", "dynamic");
   bool useStaticIP = ipAssignment == "static";
-  prefs.end();
   if (useStaticIP)
   {
-    prefs.begin(APP_NAME_SHORT, true);
-    String localIpStr = prefs.getString("localIp", "192.168.10.123");
-    String gatewayStr = prefs.getString("gateway", "192.168.10.1");
-    String subnetStr = prefs.getString("subnet", "255.255.255.0");
-    prefs.end();
-#ifdef serial
+    String localIpStr = getNvsString("localIp", "192.168.10.123");
+    String gatewayStr = getNvsString("gateway", "192.168.10.1");
+    String subnetStr = getNvsString("subnet", "255.255.255.0");
     localIpStr = String("192.168.10.123");
     Serial.print("Setting static IP address to ");
     Serial.println(localIpStr);
-#endif
     IPAddress localIp(localIpStr.c_str());
     IPAddress gateway(gatewayStr.c_str());
     IPAddress subnet(subnetStr.c_str());

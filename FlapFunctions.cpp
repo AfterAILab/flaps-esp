@@ -1,11 +1,11 @@
 #include <Wire.h>
 #include <Arduino_JSON.h>
 #include "FlapFunctions.h"
-#include "prefs.h"
 #include "WifiFunctions.h"
 #include "utils.h"
 #include "env.h"
 #include "letters.h"
+#include "nvsUtils.h"
 
 /**
  * @purpose Maintain all unit states as a global variablef
@@ -28,9 +28,7 @@ void commitStagedUnitStates()
 {
   UnitState *stagedUnitStates = getUnitStatesStaged();
 
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
 
   for (int i = 0; i < numUnits; i++)
   {
@@ -88,10 +86,10 @@ void writeToUnit(int address, int letter, int flapRpm)
 void showMessage(String message)
 {
   Serial.println("Entering showMessage function");
-  int flapRpm = getRpm();
+  int flapRpm = getNvsInt(PARAM_RPM);
 
   // Format string per alignment choice
-  String alignment = getAlignment();
+  String alignment = getNvsString(PARAM_ALIGNMENT);
   String alignedMessage;
   if (alignment == "left")
   {
@@ -106,9 +104,7 @@ void showMessage(String message)
     alignedMessage = centerString(message);
   }
 
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   Serial.printf("rpm: %d, numUnits: %d, input message: %s, aligned message: %s\n", flapRpm, numUnits, message.c_str(), alignedMessage.c_str());
   for (int i = 0; i < numUnits; i++)
   {
@@ -128,7 +124,6 @@ void showMessage(String message)
       writeToUnit(i, letterPosition, flapRpm);
     }
   }
-  setWrittenLast(message);
 }
 
 /**
@@ -195,9 +190,7 @@ UnitState fetchUnitState(int unitAddr)
  */
 void fetchAndSetUnitStates()
 {
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   for (int i = 0; i < numUnits; i++)
   {
     unitStates[i] = fetchUnitState(i);
@@ -239,9 +232,7 @@ void setUnitStates(UnitState *states)
 void updateUnitStatesStringCache()
 {
   JSONVar j;
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   if (numUnits <= 0)
   {
     // Empty array for avrs
@@ -281,9 +272,7 @@ String getUnitStatesStringCache()
 String getOffsetsInString()
 {
   String offsetString = "[";
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   for (int i = 0; i < numUnits; i++)
   {
     offsetString += String(unitStates[i].offset);

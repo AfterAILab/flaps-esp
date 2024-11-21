@@ -1,6 +1,6 @@
 #include "stringHandling.h"
 #include "env.h"
-#include "prefs.h"
+#include "nvsUtils.h"
 
 // converts input string to uppercase
 String cleanString(String message)
@@ -13,9 +13,7 @@ String cleanString(String message)
 String centerString(String message)
 {
   // Takes care of the left side of the text (if any)
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   if (message.length() > numUnits)
   {
     int start = (message.length() - numUnits) / 2;
@@ -44,9 +42,7 @@ String centerString(String message)
 // aligns string on right side of array and fills empty chars with spaces
 String rightString(String message)
 {
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   if (message.length() > numUnits)
   {
     int start = message.length() - numUnits;
@@ -69,9 +65,7 @@ String rightString(String message)
 // aligns string on left side of array and fills empty chars with spaces
 String leftString(String message)
 {
-  prefs.begin(APP_NAME_SHORT, true);
-  int numUnits = prefs.getInt(PARAM_NUM_UNITS, 1);
-  prefs.end();
+  int numUnits = getNvsInt(PARAM_NUM_UNITS, 1);
   if (message.length() > numUnits)
   {
     message = message.substring(0, numUnits);

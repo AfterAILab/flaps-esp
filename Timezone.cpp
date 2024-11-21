@@ -1,6 +1,6 @@
 #include "Timezone.h"
-#include <prefs.h>
 #include <ezTime.h>
+#include "nvsUtils.h"
 #include "env.h"
 
 /**
@@ -15,9 +15,7 @@ Timezone timezone;
  */
 void applyUserTimezone()
 {
-  prefs.begin(APP_NAME_SHORT, false);
-  String timezoneString = prefs.getString("timezone", "Asia/Tokyo");
-  prefs.end();
+  String timezoneString = getNvsString("timezone", "Asia/Tokyo");
   timezone.setLocation(timezoneString);
 }
 
